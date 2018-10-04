@@ -206,7 +206,7 @@ class Residential(Department):
             af().count_entered_into_provider(self.original_entries, "res", self.quarter_end, self.fiscal_year),
             af().percent_w_ss_service(self.original_entries, self.original_services, self.quarter_end, self.fiscal_year, "res"),
             af().percent_w_vi_spdat(self.original_entries, self.original_spat, "res", self.quarter_end),
-            af().percent_served_poc(self.original_services, "res")
+            af().percent_entries_poc(self.original_services, "res", self.quarter_end)
         ]
 
         return pd.concat(self.output, ignore_index=True)
@@ -237,7 +237,7 @@ class Emergency(Department):
         self.output = [
             af().count_entered_into_provider(self.original_entries, "es", self.quarter_end, self.fiscal_year),
             af().count_exclusions_by_provider(self.origina_excluiosn, "es"),
-            af().percent_served_poc(self.original_services, "es"),
+            af().percent_entries_poc(self.original_services, "es", self.quarter_end),
             af().percent_w_ss_service(self.original_entries, self.original_services, self.quarter_end, self.fiscal_year, "es"),
             af().percent_w_vi_spdat(self.original_entries, self.original_spdeat, "es", self.quarter_end)
         ]

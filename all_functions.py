@@ -1750,11 +1750,82 @@ class AllFunctions:
         return final_pivot
 
 
+    def percent_entries_poc(self, entries_df, dept, quarter_end):
+        """
+        metric: 41% of participants served will be people of color
+
+        used by: Residential Shelters, Emergency shelters
+
+        :param entries_df: a pandas dataframe created from the all_entries + UDE
+        ART report
+
+        :return: a pandas datarame
+        """
+        # create the poc list
+        poc = CreatePOCList(entries_df).return_poc_list()
+
+        # add quarter and fiscal year columns to a local copy of the data frame
+        # then also add the columns identifying if a participant was enrolled
+        # during a given quarter
+        data = return_quarters(
+            QuarterAndFiscalYear(
+                entries_df[
+                    entries_df["Entry Exit Provider Id"].isin(self.departments[dept])
+                ].drop_duplicates(subset=["Client Uid", "Entry Exit Entry Date"]),
+                "specific",
+                quarter_end,
+                fill_na=True
+            ).create_fy_q_columns()
+        )
+
+        # create a poc version of the DataFrame
+        poc_data = data[data["Client Uid"].isin(poc)]
+
+        # create a dataframe that will show sums of unique participants per quarters
+        q_data = pd.DataFrame.from_dict(
+            {
+                "Q1": [data["Q1"].sum()],
+                "Q2": [data["Q2"].sum()],
+                "Q3": [data["Q3"].sum()],
+                "Q4": [data["Q4"].sum()]
+            }
+        )
+
+        # add a FYTD column
+        q_data["FYTD"] = len(data.index)
+
+        # create poc quarter data
+        poc_q_data = pd.DataFrame.from_dict(
+            {
+                "Q1": [poc_data["Q1"].sum()],
+                "Q2": [poc_data["Q2"].sum()],
+                "Q3": [poc_data["Q3"].sum()],
+                "Q4": [poc_data["Q4"].sum()]
+            }
+        )
+
+        # add a FYTD column to the poc_q_data
+        poc_q_data["FYTD"] = len(poc_data.index)
+
+        # create a percent dataframe
+        percent = (100*(poc_q_data / poc_data)).round(2)
+
+        # concatenate the three dataframes
+        concatenated = pd.concat([poc_q_data, q_data, percent], ignore_index=True)
+
+        # add metric and goals columns
+        concatenated["Metric"] = "41% of participants served will be people of color"
+        concatentated["Goal"] = "41%"
+
+        # return the concatenated dataframe
+        return concatenated
+
+
     def percent_served_poc(self, services_df, dept):
         """
         metric: 41% of participants served will be people of color
 
-        used by: resource center, res shelters, es shelters, outreach/CHAT,
+        used by: resource center, outreach/CHAT,
         health
 
         :param services_df: a pandas dataframe created from the all services
