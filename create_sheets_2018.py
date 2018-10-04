@@ -26,17 +26,16 @@ class Department:
     def __init__(
         self,
         services_file,
-        entries_file,
-        placements_file
+        entries_file
     ):
         self.original_services = pd.read_excel(services_file, sheet_name="Service Data")
         self.original_needs = pd.read_excel(services_file, sheet_name="Need Data")
         self.original_entries = pd.read_excel(entries_file, sheet_name="Report 1")
-        self.original_placements = pd.read_excel(placements_file, sheet_name="Placement Data")
         self.output = []
 
     def print_all(self):
         print(pd.DataFrame(self.output, columns=["Question", "Goal", "Metric"]))
+
 
 class Agency(Department):
     def __init__(
@@ -48,10 +47,10 @@ class Agency(Department):
     ):
         super(Agency, self).__init__(
             services_file,
-            entries_file,
-            placements_file
+            entries_file
         )
         self.original_followups_a = pd.read_excel(followups_file_a, sheet_name="Report 1")
+        self.original_placements = pd.read_excel(placements_file, sheet_name="Placement Data")
 
     def process(self):
         self.output = [
@@ -77,9 +76,9 @@ class Retention(Department):
     ):
         super(Retention, self).__init__(
             services_file,
-            entries_file,
-            placements_file
+            entries_file
         )
+        self.original_placements = pd.read_excel(placements_file, sheet_name="Placement Data")
         self.original_followups_r = pd.read_excel(followups_file_r, sheet_name="Report 1")
         self.quarter_end = quarter_end
         self.fiscal_year = fiscal_year
@@ -87,7 +86,7 @@ class Retention(Department):
     def process(self):
         self.output = [
             af().percent_retaining_post_12_months(self.original_followups_r),
-            af().percent_w_ss_service(self.original_entries, self.original_services, self.quarter_end, self.fiscal_year, "ret")
+            af().percent_w_ss_service(self.original_entries, self.original_services, self.quarter_end, self.fiscal_year, "retention")
         ]
         return pd.concat(self.output, ignore_index=True)
 
@@ -101,9 +100,9 @@ class HousingCM(Department):
     ):
         super(HousingCM, self).__init__(
             services_file,
-            entries_file,
-            placements_file
+            entries_file
         )
+        self.original_placements = pd.read_excel(placements_file, sheet_name="Placement Data")
 
     def process(self):
         self.output = [
@@ -126,9 +125,9 @@ class Veterans(Department):
     ):
         super(Veterans, self).__init__(
             services_file,
-            entries_file,
-            placements_file
+            entries_file
         )
+        self.original_placements = pd.read_excel(placements_file, sheet_name="Placement Data")
         self.original_followups_v = pd.read_excel(followups_file_v, sheet_name="Report 1")
 
     def process(self):
@@ -148,7 +147,7 @@ class Resource(Department):
         services_file,
         entries_file
     ):
-        super(Resource, self).init(
+        super(Resource, self).__init__(
             services_file,
             entries_file
         )
@@ -157,7 +156,7 @@ class Resource(Department):
         self.output = [
             af().count_served_by_provider(self.original_services, "rec"),
             af().count_served_with_hygiene_services(self.original_services, "rec"),
-            af().percent_served_poc(self.original_servces, "rec"),
+            af().percent_served_poc(self.original_services, "rec"),
             # af().percent_w_hf_ss(self.original_services, "rec")
         ]
 
@@ -177,8 +176,8 @@ class Permanent(Department):
 
     def process(self):
         self.output = [
-            af().percent_exits_by_destination(entries_df, "perm", "cagpd"),
-            af().percent_exits_by_destination(entries_df, "perm", "ca bm")
+            af().percent_exits_by_destination(self.original_entries, "perm", "cagpd"),
+            af().percent_exits_by_destination(self.original_entries, "perm", "ca bm")
         ]
 
         return pd.concat(self.output, ignore_index=True)
@@ -205,8 +204,8 @@ class Residential(Department):
         self.output = [
             af().count_entered_into_provider(self.original_entries, "res", self.quarter_end, self.fiscal_year),
             af().percent_w_ss_service(self.original_entries, self.original_services, self.quarter_end, self.fiscal_year, "res"),
-            af().percent_w_vi_spdat(self.original_entries, self.original_spat, "res", self.quarter_end),
-            af().percent_entries_poc(self.original_services, "res", self.quarter_end)
+            af().percent_w_vi_spdat(self.original_entries, self.original_spdat, "res", self.quarter_end),
+            af().percent_entries_poc(self.original_entries, "res", self.quarter_end)
         ]
 
         return pd.concat(self.output, ignore_index=True)
@@ -236,10 +235,10 @@ class Emergency(Department):
     def process(self):
         self.output = [
             af().count_entered_into_provider(self.original_entries, "es", self.quarter_end, self.fiscal_year),
-            af().count_exclusions_by_provider(self.origina_excluiosn, "es"),
-            af().percent_entries_poc(self.original_services, "es", self.quarter_end),
+            af().count_exclusions_by_provider(self.original_exclusions, "es"),
+            af().percent_entries_poc(self.original_entries, "es", self.quarter_end),
             af().percent_w_ss_service(self.original_entries, self.original_services, self.quarter_end, self.fiscal_year, "es"),
-            af().percent_w_vi_spdat(self.original_entries, self.original_spdeat, "es", self.quarter_end)
+            af().percent_w_vi_spdat(self.original_entries, self.original_spdat, "es", self.quarter_end)
         ]
 
         return pd.concat(self.output, ignore_index=True)
@@ -248,11 +247,13 @@ class Emergency(Department):
 class RentWell(Department):
     def __init__(
         self,
-        services_file
+        services_file,
+        entries_file
 
     ):
         super(RentWell, self).__init__(
-            services_file
+            services_file,
+            entries_file
         )
 
     def process(self):
@@ -275,8 +276,7 @@ class Outreach(Department):
     ):
         super(Outreach, self).__init__(
             services_file,
-            entries_file,
-            vi_spdat_file
+            entries_file
         )
         self.original_spdat = pd.read_excel(vi_spdat_file, sheet_name="Report 1")
         self.quarter_end = quarter_end
@@ -284,9 +284,9 @@ class Outreach(Department):
 
     def process(self):
         self.output = [
-            af().count_spdated(self.orginal_spdat),
+            af().count_spdated(self.original_spdat),
             af().count_document_ready(self.original_spdat),
-            af().count_entered_into_provider(self.original_entries, "TicketHome", self.quarter_end, self.fiscaly_year),
+            af().count_entered_into_provider(self.original_entries, "TicketHome", self.quarter_end, self.fiscal_year),
             af().percent_served_poc(self.original_services, "out")
         ]
 
@@ -307,8 +307,8 @@ class Health(Department):
 
     def process(self):
         self.output = [
-            af().count_referred_to_h_w_services(self.original_services),
-            af().percent_of_referrals_successful(self.original_services, self.original_needs),
+            af().count_referred_to_h_w_service(self.original_services),
+            af().percent_referrals_successful(self.original_services, self.original_needs),
             af().percent_served_poc(self.original_services, "well")
         ]
 
@@ -355,7 +355,7 @@ if __name__ == "__main__":
         placements_file,
         follow_ups_v_file
     ).process()
-    resouce = Resource(
+    resource = Resource(
         services_file,
         entries_file
     ).process()
@@ -375,10 +375,12 @@ if __name__ == "__main__":
         entries_file,
         exclusions_file,
         spdat_file,
-        datetime(year=2018, month=30, day=9)
+        datetime(year=2018, month=9, day=30),
+        "FY 18-19"
     ).process()
     rent = RentWell(
-        services_file
+        services_file,
+        entries_file
     ).process()
     out = Outreach(
         services_file,
@@ -395,15 +397,15 @@ if __name__ == "__main__":
     # establish writer object and save the output to a spreadsheet
     writer = pd.ExcelWriter(asksaveasfilename(), engine="xlsxwriter")
     agency.to_excel(writer, sheet_name="Agency", index=False)
-    # housingcm.to_excel(writer, sheet_name="Housing CM", index=False)
-    # retention.to_excel(writer, sheet_name="retention", index=False)
-    # housing.to_excel(writer, sheet_name="Housing CM", index=False)
-    # vets.to_excel(writer, sheet_name="Vets", index=False)
-    # resource.to_excel(writer, sheet_name="Resource Center", index=False)
-    # perm.to_excel(writer, sheet_name="CC and BM", index=False)
-    # res.to_excel(writer, sheet_name="Res Shelters", index=False)
-    # es.to_excel(writer, sheet_name="ES Shelters", index=False)
-    # rent.to_excel(writer, sheet_name="RentWell", index=False)
-    # out.to_excel(writer, sheet_name="Outreach", index=False)
-    # health.to_excel(writer, sheet_name="Healt and Wellness", index=False)
+    housingcm.to_excel(writer, sheet_name="Housing CM", index=False)
+    retention.to_excel(writer, sheet_name="retention", index=False)
+    housingcm.to_excel(writer, sheet_name="Housing CM", index=False)
+    vets.to_excel(writer, sheet_name="Vets", index=False)
+    resource.to_excel(writer, sheet_name="Resource Center", index=False)
+    perm.to_excel(writer, sheet_name="CC and BM", index=False)
+    res.to_excel(writer, sheet_name="Res Shelters", index=False)
+    es.to_excel(writer, sheet_name="ES Shelters", index=False)
+    rent.to_excel(writer, sheet_name="RentWell", index=False)
+    out.to_excel(writer, sheet_name="Outreach", index=False)
+    health.to_excel(writer, sheet_name="Healt and Wellness", index=False)
     writer.save()

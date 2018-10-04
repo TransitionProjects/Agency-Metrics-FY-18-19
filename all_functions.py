@@ -498,9 +498,9 @@ class AllFunctions:
 
 
         # add fytd, metric, and goal columns
-        pivot["FYTD"] = len(data.drop_duplicates(subst="Client Uid").index)
+        pivot["FYTD"] = len(data.drop_duplicates(subset="Client Uid").index)
         pivot["Metric"] = "800 people will be referred to health and wellness services"
-        pivot["Goals"] = 800
+        pivot["Goal"] = 800
 
         # return the pivot table
         return pivot
@@ -519,6 +519,7 @@ class AllFunctions:
         # add quarter and fiscal year values to a local copy of the services_df
         data = QuarterAndFiscalYear(
             services_df[
+                services_df["Service Provider Specific Code"].notna() &
                 services_df["Service Provider Specific Code"].str.contains("RentWell")
             ].drop_duplicates(subset=["Client Uid", "Service Provide Start Date"]),
             fill_na=False
@@ -557,8 +558,8 @@ class AllFunctions:
 
         # create a local copy of the spdat_df with quarter and fiscal year columns
         data = QuarterAndFiscalYear(
-            spdat_df.dropna(subset="Date Document Ready - ALL Top Priority Documents are COMPLETE (Only Answer Once)(9572)")
-        )
+            spdat_df.dropna(subset=["Date Document Ready - ALL Top Priority Documents are COMPLETE (Only Answer Once)(9572)"])
+        ).create_fy_q_columns()
 
         # create a pivot table
         pivot = pd.pivot_table(
@@ -683,9 +684,11 @@ class AllFunctions:
         """
         # add fiscal year and quarter columns to a local copy of the dataframe
         data = QuarterAndFiscalYear(
-            spdat_df.drop_duplicate(subset="Client Uid"),
+            spdat_df[["Client Uid", "Date Added (7144-date_added)"]].dropna(
+                subset=["Date Added (7144-date_added)"]
+            ).drop_duplicates(subset="Client Uid"),
             fill_na=False
-        )
+        ).create_fy_q_columns()
 
         # create a pivot table
         pivot = pd.pivot_table(
@@ -1759,7 +1762,7 @@ class AllFunctions:
         :param entries_df: a pandas dataframe created from the all_entries + UDE
         ART report
 
-        :return: a pandas datarame
+        :return: a pandas dataframe
         """
         # create the poc list
         poc = CreatePOCList(entries_df).return_poc_list()
@@ -1772,27 +1775,28 @@ class AllFunctions:
                 entries_df[
                     entries_df["Entry Exit Provider Id"].isin(self.departments[dept])
                 ].drop_duplicates(subset=["Client Uid", "Entry Exit Entry Date"]),
-                "specific",
+                "specify",
                 quarter_end,
                 fill_na=True
             ).create_fy_q_columns()
         )
 
         # create a poc version of the DataFrame
-        poc_data = data[data["Client Uid"].isin(poc)]
+        poc_data = data[data["Client Uid"].isin(poc)][["Q1", "Q2", "Q3", "Q4"]]
 
         # create a dataframe that will show sums of unique participants per quarters
+        cleaned = data[["Q1", "Q2", "Q3", "Q4"]]
         q_data = pd.DataFrame.from_dict(
             {
-                "Q1": [data["Q1"].sum()],
-                "Q2": [data["Q2"].sum()],
-                "Q3": [data["Q3"].sum()],
-                "Q4": [data["Q4"].sum()]
+                "Q1": [cleaned["Q1"].sum()],
+                "Q2": [cleaned["Q2"].sum()],
+                "Q3": [cleaned["Q3"].sum()],
+                "Q4": [cleaned["Q4"].sum()]
             }
         )
 
         # add a FYTD column
-        q_data["FYTD"] = len(data.index)
+        cleaned["FYTD"] = len(data.index)
 
         # create poc quarter data
         poc_q_data = pd.DataFrame.from_dict(
@@ -1805,17 +1809,17 @@ class AllFunctions:
         )
 
         # add a FYTD column to the poc_q_data
-        poc_q_data["FYTD"] = len(poc_data.index)
+        poc_data["FYTD"] = len(poc_data.index)
 
         # create a percent dataframe
         percent = (100*(poc_q_data / poc_data)).round(2)
 
+        # add metric and goals columns
+        percent["Metric"] = "41% of participants served will be people of color"
+        percent["Goal"] = "41%"
+
         # concatenate the three dataframes
         concatenated = pd.concat([poc_q_data, q_data, percent], ignore_index=True)
-
-        # add metric and goals columns
-        concatenated["Metric"] = "41% of participants served will be people of color"
-        concatentated["Goal"] = "41%"
 
         # return the concatenated dataframe
         return concatenated
