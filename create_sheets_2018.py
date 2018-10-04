@@ -334,7 +334,7 @@ if __name__ == "__main__":
         services_file,
         entries_file,
         placements_file,
-        followups_a_file
+        follow_ups_a_file
     ).process()
     retention = Retention(
         services_file,

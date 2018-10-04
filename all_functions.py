@@ -571,7 +571,7 @@ class AllFunctions:
 
         # create FYTD, Metric, and Goal columns
         pivot["FYTD"] = len(data.drop_duplicates(subset="Client Uid"))
-        pivot["Metric"] = 60 individuals waiting for PSH get application-ready
+        pivot["Metric"] = "60 individuals waiting for PSH get application-ready"
         pivot["Goal"] = 60
 
         # return the relevant data
