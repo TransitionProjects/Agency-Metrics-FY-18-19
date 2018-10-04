@@ -1796,7 +1796,7 @@ class AllFunctions:
         )
 
         # add a FYTD column
-        cleaned["FYTD"] = len(data.index)
+        q_data["FYTD"] = len(cleaned.index)
 
         # create poc quarter data
         poc_q_data = pd.DataFrame.from_dict(
@@ -1809,10 +1809,10 @@ class AllFunctions:
         )
 
         # add a FYTD column to the poc_q_data
-        poc_data["FYTD"] = len(poc_data.index)
+        poc_q_data["FYTD"] = len(poc_data.index)
 
         # create a percent dataframe
-        percent = (100*(poc_q_data / poc_data)).round(2)
+        percent = (100*(poc_q_data / q_data)).round(2)
 
         # add metric and goals columns
         percent["Metric"] = "41% of participants served will be people of color"
