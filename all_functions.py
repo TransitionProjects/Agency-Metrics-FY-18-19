@@ -506,7 +506,7 @@ class AllFunctions:
         return pivot
 
 
-    def count_attend_rent_well(self. services_df):
+    def count_attend_rent_well(self, services_df):
         """
         metric: 400 Transition Projects participats will enroll in RentWell
 
@@ -1864,13 +1864,27 @@ class AllFunctions:
             True
         ).create_fy_q_columns()
 
-        services = QuarterAndFiscalYear(
-            services_df[
-                services_df["Client Uid"].isin(entries["Client Uid"]) &
-                services_df["Service Provide Provider"].isin(ss_dept)
-            ],
-            fill_na=False
-        ).create_fy_q_columns()
+        # return a services df with fy and quarter columns matching department
+        # spec
+        if dept == "ret":
+            services = QuarterAndFiscalYear(
+                services_df[
+                    services_df["Client Uid"].isin(entries["Client Uid"]) &
+                    services_df["Service Provide Provider"].isin(ss_dept)
+                ],
+                fill_na=False
+            ).create_fy_q_columns()
+        else:
+            services = QuarterAndFiscalYear(
+                services_df[
+                    services_df["Client Uid"].isin(entries["Client Uid"]) &
+                    ~(services_df["Service Provide Provider"].isin(self.departments["res"])) &
+                    ~(services_df["Service Provide Provider"].isin(self.departments["rec"])) &
+                    ~(services_df["Service Provide Provider"].isin(self.departments["es"]))
+                ],
+                fill_na=False
+            ).create_fy_q_columns()
+
 
         # merge the date columns from the entry data frame with the services
         # data
