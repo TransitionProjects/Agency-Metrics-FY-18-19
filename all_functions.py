@@ -69,7 +69,8 @@ class AllFunctions:
             "res": [
                 "Transition Projects (TPI) - Jean's Place L1 - SP(29)",
                 "Transition Projects (TPI) - Clark Center - SP(25)",
-                "Transition Projects (TPI) - Doreen's Place - SP(28)"
+                "Transition Projects (TPI) - Doreen's Place - SP(28)",
+                "Transition Projects (TPI) - VA Grant Per Diem (inc. Doreen's Place GPD) - SP(3189)"
             ],
             "es": [
                 "ZZ - Transition Projects (TPI) - Columbia Shelter (Do not use after 4/25/18)(5857)",
@@ -365,7 +366,7 @@ class AllFunctions:
         elif dept == "vets":
             # Create a pivot table for the quarters droping duplicate placements
             # using client uid, fiscal year, and fiscal quarter
-            q_perm_placements = pd.pivot_table(
+            merged = pd.pivot_table(
                 data[
                     data[
                         "Intervention Type (TPI)(8745)"
@@ -377,42 +378,19 @@ class AllFunctions:
                         "Placement Date(3072) Quarter"
                     ]
                 ),
-                index=["Placement Date(3072) Fiscal Year"],
-                columns=["Placement Date(3072) Quarter"],
-                values="Household Uid",
-                aggfunc=len
-            )
-
-            # Creat a pivot table for the fiscal years dropping duplicate placements
-            # using client uid and fiscal year
-            y_perm_placements = pd.pivot_table(
-                data[
-                    data[
-                        "Intervention Type (TPI)(8745)"
-                    ].str.contains("Permanent")
-                ].drop_duplicates(
-                        subset=[
-                            "Household Uid",
-                            "Placement Date(3072) Fiscal Year"
-                        ]
-                    ),
                 index="Placement Date(3072) Fiscal Year",
+                columns="Placement Date(3072) Quarter",
                 values="Household Uid",
                 aggfunc=len
             )
 
-            # Merge the two pivot tables, dropping the index name to make them more
-            # readable and to make them more easily printable
-            merged = q_perm_placements.merge(
-                y_perm_placements,
-                left_index=True,
-                right_index=True,
-                how="outer"
-            ).rename_axis(None).rename(
-                columns={"Client Uid": "FYTD"}
+            # Creat a fytd total column
+            merged["FYTD"] = len(
+                data[
+                    data["Intervention Type (TPI)(8745)"].str.contains("Permanent")
+                ].drop_duplicates(subset="Household Uid").index
             )
-        else:
-            pass
+
 
         # Add the department and metric columns pre-filled with the appropriate
         # values
@@ -648,15 +626,13 @@ class AllFunctions:
             services_df[
                 services_df["Service Provide Provider"].isin(self.departments[dept]) &
                 services_df["Service Provider Specific Code"].isin(hygiene_services)
-            ].drop_duplicates(subset="Client Uid"),
+            ],
             fill_na=False
         ).create_fy_q_columns()
 
         # create a pivot table by quarter
         pivot = pd.pivot_table(
-            data.drop_duplicates(
-                subset=["Client Uid", "Service Provide Start Date Quarter"]
-            ),
+            data,
             index="Service Provide Start Date Fiscal Year",
             columns="Service Provide Start Date Quarter",
             values="Client Uid",
@@ -740,23 +716,13 @@ class AllFunctions:
                     ],
                     fill_na=False
                 ).create_fy_q_columns()
-                conds = [
-                    leavers["Entry Exit Destination"].isin(self.perm_dest),
-                    leavers["Entry Exit Destination"].isin(self.temp_dest)
-                ]
-                choices = ["Yes", "Yes"]
-                leavers["Perm Stable"] = np.select(conds, choices, default="No")
 
                 # Create quarter and year pivot tables
                 q_pos_pivot = pd.pivot_table(
                     leavers[
-                        (leavers["Perm Stable"] == "Yes")
-                    ].drop_duplicates(
-                        subset=[
-                            "Client Uid",
-                            "Entry Exit Exit Date Quarter"
-                        ]
-                    ),
+                        leavers["Entry Exit Destination"].isin(self.perm_dest) |
+                        leavers["Entry Exit Destination"].isin(self.temp_dest)
+                    ],
                     index="Entry Exit Exit Date Fiscal Year",
                     columns="Entry Exit Exit Date Quarter",
                     values="Client Uid",
@@ -764,31 +730,20 @@ class AllFunctions:
                 )
                 q_pos_pivot["FYTD"] = len(
                     leavers[
-                        leavers["Entry Exit Exit Date"].notna() &
-                        (leavers["Perm Stable"] == "Yes")
-                    ].drop_duplicates(
-                        subset=["Client Uid", "Entry Exit Exit Date Fiscal Year"]
-                    ).index
+                        leavers["Entry Exit Destination"].isin(self.perm_dest) |
+                        leavers["Entry Exit Destination"].isin(self.temp_dest)
+                    ].index
                 )
 
                 q_pivot = pd.pivot_table(
-                    leavers.drop_duplicates(
-                        subset=[
-                            "Client Uid",
-                            "Entry Exit Exit Date Quarter"
-                        ]
-                    ),
+                    leavers,
                     index="Entry Exit Exit Date Fiscal Year",
                     columns="Entry Exit Exit Date Quarter",
                     values="Client Uid",
                     aggfunc=len
                 )
                 q_pivot["FYTD"] = len(
-                    leavers[
-                        leavers["Entry Exit Exit Date"].notna()
-                    ].drop_duplicates(
-                        subset=["Client Uid", "Entry Exit Exit Date Fiscal Year"]
-                    ).index
+                    leavers.index
                 )
 
                 # create percent rows
@@ -816,24 +771,13 @@ class AllFunctions:
                     ],
                     fill_na=False
                 ).create_fy_q_columns()
-                conds = [
-                    leavers["Entry Exit Destination"].isin(self.perm_dest),
-                    leavers["Entry Exit Destination"].isin(self.temp_dest)
-                ]
-                choices = ["Yes", "Yes"]
-                leavers["Perm Stable"] = np.select(conds, choices, default="No")
 
                 # Create quarter and year pivot tables
                 q_pos_pivot = pd.pivot_table(
                     leavers[
-                        (leavers["Perm Stable"] == "Yes")
-                    ].drop_duplicates(
-                        subset=[
-                            "Client Uid",
-                            "Entry Exit Exit Date Fiscal Year",
-                            "Entry Exit Exit Date Quarter"
-                        ]
-                    ),
+                        leavers["Entry Exit Destination"].isin(self.perm_dest) |
+                        leavers["Entry Exit Destination"].isin(self.temp_dest)
+                    ],
                     index="Entry Exit Exit Date Fiscal Year",
                     columns="Entry Exit Exit Date Quarter",
                     values="Client Uid",
@@ -841,33 +785,19 @@ class AllFunctions:
                 )
                 q_pos_pivot["FYTD"] = len(
                     leavers[
-                        leavers["Entry Exit Exit Date"].notna() &
-                        (leavers["Perm Stable"] == "Yes")
-                    ].drop_duplicates(
-                        subset=["Client Uid", "Entry Exit Exit Date Fiscal Year"]
-                    ).index
+                        leavers["Entry Exit Destination"].isin(self.perm_dest) |
+                        leavers["Entry Exit Destination"].isin(self.temp_dest)
+                    ].index
                 )
 
                 q_pivot = pd.pivot_table(
-                    leavers.drop_duplicates(
-                        subset=[
-                            "Client Uid",
-                            "Entry Exit Exit Date Fiscal Year",
-                            "Entry Exit Exit Date Quarter"
-                        ]
-                    ),
+                    leavers,
                     index="Entry Exit Exit Date Fiscal Year",
                     columns="Entry Exit Exit Date Quarter",
                     values="Client Uid",
                     aggfunc=len
                 )
-                q_pivot["FYTD"] = len(
-                    leavers[
-                        leavers["Entry Exit Exit Date"].notna()
-                    ].drop_duplicates(
-                        subset=["Client Uid", "Entry Exit Exit Date Fiscal Year"]
-                    ).index
-                )
+                q_pivot["FYTD"] = len(leavers.index)
 
                 # merge the q_pivot and y_pivot pivot tables
                 percent = (100*(q_pos_pivot / q_pivot)).round(2)
@@ -1001,38 +931,38 @@ class AllFunctions:
                 # quarter
                 q_perm = pd.pivot_table(
                     leavers[
-                        leavers["Exit Destination"] == "Perm"
-                    ].drop_duplicates(subset=["Client Uid", "Entry Exit Exit Date Quarter"]),
+                        leavers["Entry Exit Destination"].isin(self.perm_dest)
+                    ],
                     columns="Entry Exit Exit Date Quarter",
                     values="Client Uid",
                     aggfunc=len
                 )
                 q_perm["FYTD"] = len(
                     leavers[
-                        leavers["Exit Destination"] == "Perm"
-                    ].drop_duplicates(subset="Client Uid").index)
+                        leavers["Entry Exit Destination"].isin(self.perm_dest)
+                    ].index)
 
                 q_stable = pd.pivot_table(
                     leavers[
-                        leavers["Exit Destination"] == "Stable"
-                    ].drop_duplicates(subset=["Client Uid", "Entry Exit Exit Date Quarter"]),
+                        leavers["Entry Exit Destination"].isin(self.temp_dest)
+                    ],
                     columns="Entry Exit Exit Date Quarter",
                     values="Client Uid",
                     aggfunc=len
                 )
                 q_stable["FYTD"] = len(
                     leavers[
-                        leavers["Exit Destination"] == "Stable"
-                    ].drop_duplicates(subset="Client Uid").index)
+                        leavers["Entry Exit Destination"].isin(self.temp_dest)
+                    ].index)
 
                 q_any = pd.pivot_table(
-                    leavers.drop_duplicates(subset=["Client Uid", "Entry Exit Exit Date Quarter"]),
+                    leavers,
                     columns="Entry Exit Exit Date Quarter",
                     values="Client Uid",
                     aggfunc=len
                 )
                 q_any["FYTD"] = len(
-                    leavers.drop_duplicates(subset="Client Uid").index
+                    leavers.index
                 )
 
                 # Create % columns
@@ -1093,7 +1023,7 @@ class AllFunctions:
                 q_perm = pd.pivot_table(
                     leavers[
                         leavers["Exit Destination"] == "Perm"
-                    ].drop_duplicates(subset=["Client Uid", "Entry Exit Exit Date Quarter"]),
+                    ],
                     columns="Entry Exit Exit Date Quarter",
                     values="Client Uid",
                     aggfunc=len
@@ -1101,13 +1031,13 @@ class AllFunctions:
                 q_perm["FYTD"] = len(
                     leavers[
                         leavers["Exit Destination"] == "Perm"
-                    ].drop_duplicates(subset="Client Uid").index
+                    ].index
                 )
 
                 q_stable = pd.pivot_table(
                     leavers[
                         leavers["Exit Destination"] == "Stable"
-                    ].drop_duplicates(subset=["Client Uid", "Entry Exit Exit Date Quarter"]),
+                    ],
                     columns="Entry Exit Exit Date Quarter",
                     values="Client Uid",
                     aggfunc=len
@@ -1119,13 +1049,13 @@ class AllFunctions:
                 )
 
                 q_any = pd.pivot_table(
-                    leavers.drop_duplicates(subset=["Client Uid", "Entry Exit Exit Date Quarter"]),
+                    leavers,
                     columns="Entry Exit Exit Date Quarter",
                     values="Client Uid",
                     aggfunc=len
                 )
                 q_any["FYTD"] = len(
-                    leavers.drop_duplicates(subset="Client Uid").index
+                    leavers.index
                 )
 
                 # add a % to destination rows
@@ -1365,7 +1295,7 @@ class AllFunctions:
             concat_pivot.loc["% PoC"] = (
                 100*concat_pivot.loc[0]/concat_pivot.loc[1]
             ).round(2)
-            concat_pivot["Metric"] = "41% of participants served will be people of color"
+            concat_pivot["Metric"] = "41% of people placed into permanent housing will be people of color"
             concat_pivot["Goal"] = "41%"
 
             return concat_pivot
@@ -1643,7 +1573,7 @@ class AllFunctions:
         q_served["FYTD"] = len(merged.index)
 
         # create a % successfull dataframe
-        percent = 100*(q_met / q_served)
+        percent = 100*(q_met / q_served).round(2)
 
         # concatenate the pivot tables and dataframes
         concatenated = pd.concat([q_met, q_served, percent], ignore_index=True)
@@ -1692,7 +1622,7 @@ class AllFunctions:
         pos_pivot = pd.pivot_table(
             fu[
                 (fu["Months Post Subsidy"] > 10) &
-                (fu["Months Post Subsidy"] < 13) &
+                (fu["Months Post Subsidy"] < 14) &
                 (fu["Is Client Still in Housing?(2519)"] == "Yes (HUD)")
             ],
             index="Actual Follow Up Date(2518) Fiscal Year",
@@ -1829,7 +1759,7 @@ class AllFunctions:
         """
         metric: 41% of participants served will be people of color
 
-        used by: resource center, outreach/CHAT,
+        used by: agency, resource center, outreach/CHAT,
         health
 
         :param services_df: a pandas dataframe created from the all services
@@ -1841,11 +1771,17 @@ class AllFunctions:
 
         :return: a pivot table
         """
-
-        # add quarter and fiscal year columns to a local copy of the data frame
-        data = QuarterAndFiscalYear(services_df[
-            services_df["Service Provide Provider"].isin(self.departments[dept])
-        ].drop_duplicates(subset="Client Uid"), fill_na=False).create_fy_q_columns()
+        if dept == "agency":
+            # add quarter and fiscal year columns to a local copy of the data frame
+            data = QuarterAndFiscalYear(
+                services_df.drop_duplicates(subset="Client Uid"),
+                fill_na=False
+            ).create_fy_q_columns()
+        else:
+            # add quarter and fiscal year columns to a local copy of the data frame
+            data = QuarterAndFiscalYear(services_df[
+                services_df["Service Provide Provider"].isin(self.departments[dept])
+            ].drop_duplicates(subset="Client Uid"), fill_na=False).create_fy_q_columns()
 
         # create a list of all poc
         poc = CreatePOCList(services_df).return_poc_list()
@@ -1878,7 +1814,7 @@ class AllFunctions:
 
 
         # create new pivot table showing % of all who are poc
-        percent_pivot = 100*(poc_pivot / all_pivot)
+        percent_pivot = (100*(poc_pivot / all_pivot)).round(2)
 
         # concatenate the two pivot tables
         concatenated = pd.concat(
@@ -1902,9 +1838,10 @@ class AllFunctions:
     def percent_w_ss_service(self, entries_df, services_df, quarter_end, fiscal_year, dept):
         """
         metric: 50% of participants enrolled in our retention program will
-        engage in supportive services
+        engage in supportive services; 75% of guests will connect to a supportive
+        service; 75% of guests will connect to a supportive service
 
-        used by: Retention CM
+        used by: Retention CM, Residential Shelter, Emergency Shelter
 
         :param entries_df: a pandas data frame from the All Entries ART report
 
@@ -2038,9 +1975,16 @@ class AllFunctions:
             100*(concatenated.loc[0] / concatenated.loc[1])
         ).round(2)
 
-        # add the metrics and goals columns
-        concatenated["Metric"] = "50% of participants enrolled in our retention program will engage in supportive services"
-        concatenated["Goal"] = "50%"
+        if dept == "retention":
+            # add the metrics and goals columns
+            concatenated["Metric"] = "50% of participants enrolled in our retention program will engage in supportive services"
+            concatenated["Goal"] = "50%"
+        elif dept == "res":
+            concatenated["Metric"] = "75% of guests will connect to a supportive service"
+            concatenated["Goal"] = "75%"
+        else:
+            concatenated["Metric"] = "50% of guests will connect to a supportive service"
+            concatenated["Goal"] = "50%"
 
         # return the new pivot table
         return concatenated
@@ -2107,7 +2051,7 @@ class AllFunctions:
         all_pivot["FYTD"] = len(entries.drop_duplicates(subset="Client Uid").index)
 
         # create a % dataframe by dividing the other two
-        percent = (100*(all_spdated / all_pivot).round(2)).fillna(0.0)
+        percent = ((100*(all_spdated / all_pivot)).round(2)).fillna(0.0)
 
         # concatenate the data frames
         concatenated = pd.concat(

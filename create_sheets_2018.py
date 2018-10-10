@@ -55,7 +55,7 @@ class Agency(Department):
     def process(self):
         self.output = [
             af().count_placed_into_perm(self.original_placements, "agency"),
-            af().percent_placed_into_perm_poc(self.original_placements, self.original_services, "agency"),
+            af().percent_served_poc(self.original_services, "agency"),
             af().percent_retaining_post_12_months(self.original_followups_a),
             af().percent_exits_by_destination(self.original_entries, "res", "agency"),
             af().percent_exits_by_destination(self.original_entries, "es", "agency")
@@ -398,7 +398,7 @@ if __name__ == "__main__":
     writer = pd.ExcelWriter(asksaveasfilename(), engine="xlsxwriter")
     agency.to_excel(writer, sheet_name="Agency", index=False)
     housingcm.to_excel(writer, sheet_name="Housing CM", index=False)
-    retention.to_excel(writer, sheet_name="retention", index=False)
+    retention.to_excel(writer, sheet_name="Retention", index=False)
     housingcm.to_excel(writer, sheet_name="Housing CM", index=False)
     vets.to_excel(writer, sheet_name="Vets", index=False)
     resource.to_excel(writer, sheet_name="Resource Center", index=False)
