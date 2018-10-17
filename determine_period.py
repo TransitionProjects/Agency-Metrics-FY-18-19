@@ -457,7 +457,6 @@ class QuarterAndFiscalYear:
     def follow_fill_command(self):
         """
         Fill the nan values in columns with dtypes of datetime64[ns]
-
         :return: a pandas dataframe
         """
         # make a local copy of the self.dataframe object
@@ -481,7 +480,6 @@ class QuarterAndFiscalYear:
         Create fiscal year and quarter columns for each of the datetime64[ns]
         columns, then fill those columns with the appropriate quarter or fiscal
         year.
-
         :return: a pandas dataframe
         """
         # make a local copy of the self.dataframe object

@@ -55,7 +55,7 @@ class Agency(Department):
     def process(self):
         self.output = [
             af().count_placed_into_perm(self.original_placements, "agency"),
-            af().percent_served_poc(self.original_services, "agency"),
+            af().percent_agency_poc(self.original_entries, self.original_services),
             af().percent_retaining_post_12_months(self.original_followups_a),
             af().percent_exits_by_destination(self.original_entries, "res", "agency"),
             af().percent_exits_by_destination(self.original_entries, "es", "agency")

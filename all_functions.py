@@ -8,6 +8,8 @@ import numpy as np
 from determine_period import QuarterAndFiscalYear
 from find_poc import CreatePOCList
 from in_quarter import return_quarters
+from datetime import datetime
+from tkinter.filedialog import askopenfilename, asksaveasfilename
 
 class AllFunctions:
     def __init__(self):
@@ -170,10 +172,8 @@ class AllFunctions:
         elif (dept == "res") or (dept == "es"):
             # add quarter counter columns
             q_data = return_quarters(
-                data[
-                    data["Entry Exit Entry Date Fiscal Year"] == fiscal_year
-                ].drop_duplicates(
-                    subset=["Client Uid", "Entry Exit Entry Date Quarter"]
+                data.drop_duplicates(
+                    subset=["Client Uid"]
                 )
             )
 
@@ -211,7 +211,7 @@ class AllFunctions:
             pass
 
 
-    def count_exclusions_by_provider(self, exclusions_df, dept):
+    def count_exclusions_by_provider(self, exclusions_df, dept, next_quarter_end):
         """
         note: Currently this method only returns a count.  This will need to be
         altered so that a comparision is occuring to truely reflect the 15%
@@ -242,15 +242,22 @@ class AllFunctions:
                 "Client Uid",
                 "Infraction Provider",
                 "Infraction Banned Start Date",
+                "Infraction Banned End Date",
                 "Infraction Banned Code",
                 "Infraction Type"
             ]],
-            fill_na=False
+            "specify",
+            next_quarter_end,
+            fill_na=True
         ).create_fy_q_columns()
 
         # create a pivot table of the quarter data
         pivot = pd.pivot_table(
-            exclusions,
+            exclusions[
+                (
+                    exclusions["Infraction Banned End Date"] - exclusions["Infraction Banned Start Date"]
+                ).dt.days > 30
+            ],
             index="Infraction Banned Start Date Fiscal Year",
             columns="Infraction Banned Start Date Quarter",
             values="Client Uid",
@@ -258,20 +265,17 @@ class AllFunctions:
         )
 
         # add fytd, metric, and goal columns to the pivot tables
-        pivot["FYTD"] = len(exclusions.index)
+        pivot["FYTD"] = len(
+            exclusions[
+                (
+                    exclusions["Infraction Banned End Date"] - exclusions["Infraction Banned Start Date"]
+                ).dt.days > 30
+            ].index)
         pivot["Metric"] = "There will be a 15% decrease in exclusions from shelters"
         pivot["Goal"] = "15%"
 
-        return pivot
-
         # return the pivot table
-        return tuple([
-            "20% reduction in participant exclusions",
-            "20%",
-            "{} <--- Must be divided by last quarter's numbers -(last quarter/ this quarter)".format(
-                len(exclusions.index)
-            )
-        ])
+        return pivot
 
 
     def count_placed_into_perm(self, placements_df, dept):
@@ -299,7 +303,10 @@ class AllFunctions:
         elif dept.lower() == "housing":
             data = QuarterAndFiscalYear(
                 placements_df[
-                    (placements_df["Department Placed From(3076)"] == "ACCESS")|
+                    (
+                        (placements_df["Department Placed From(3076)"] == "ACCESS") &
+                        ~(placements_df["Reporting Program (TPI)(8748)"] == "Ticket Home - Served")
+                    ) |
                     (placements_df["Department Placed From(3076)"] == "Residential CM")
                 ],
                 fill_na=False
@@ -373,10 +380,10 @@ class AllFunctions:
                     ].str.contains("Permanent")
                 ].drop_duplicates(
                     subset=[
-                        "Household Uid",
-                        "Placement Date(3072) Fiscal Year",
-                        "Placement Date(3072) Quarter"
-                    ]
+                        "Household Uid"
+                        ]
+                ).drop_duplicates(
+                    subset=["Client Uid"]
                 ),
                 index="Placement Date(3072) Fiscal Year",
                 columns="Placement Date(3072) Quarter",
@@ -682,6 +689,104 @@ class AllFunctions:
 
         # return the pivot table
         return pivot
+
+
+    def percent_agency_poc(self, entry_df, services_df):
+        """
+        metric: 41% of participants served will be people of color
+
+        used by: Agency
+
+        :param entriy_df:
+
+        :services_df:
+
+        :return:
+        """
+        # add quarter columns to the entry data
+        shelter_stays = return_quarters(
+            entry_df[
+                entry_df["Entry Exit Provider Id"].isin(self.departments["res"]) |
+                entry_df["Entry Exit Provider Id"].isin(self.departments["es"]) |
+                entry_df["Entry Exit Provider Id"].isin(self.departments["ca bm"])
+            ]
+        )
+
+        # add quarter values to the services data
+        q_services = QuarterAndFiscalYear(services_df, fill_na=False).create_fy_q_columns()
+
+        merge = shelter_stays[shelter_stays["Q1"] == 1].merge(
+            q_services[q_services["Service Provide Start Date Quarter"] == "Q1"],
+            on=[
+                "Client Uid",
+                "Race(895)",
+                "Race-Additional(1213)",
+                "Ethnicity (Hispanic/Latino)(896)"
+            ],
+            how="outer"
+        ).drop_duplicates(subset="Client Uid")
+        merge_2 = shelter_stays[shelter_stays["Q2"] == 1].merge(
+            q_services[q_services["Service Provide Start Date Quarter"] == "Q2"],
+            on=[
+                "Client Uid",
+                "Race(895)",
+                "Race-Additional(1213)",
+                "Ethnicity (Hispanic/Latino)(896)"
+            ],
+            how="outer"
+        ).drop_duplicates(subset="Client Uid")
+        merge_3 = shelter_stays[shelter_stays["Q3"] == 1].merge(
+            q_services[q_services["Service Provide Start Date Quarter"] == "Q3"],
+            on=[
+                "Client Uid",
+                "Race(895)",
+                "Race-Additional(1213)",
+                "Ethnicity (Hispanic/Latino)(896)"
+            ],
+            how="outer"
+        ).drop_duplicates(subset="Client Uid")
+        merge_4 = shelter_stays[shelter_stays["Q2"] == 1].merge(
+            q_services[q_services["Service Provide Start Date Quarter"] == "Q4"],
+            on=[
+                "Client Uid",
+                "Race(895)",
+                "Race-Additional(1213)",
+                "Ethnicity (Hispanic/Latino)(896)"
+            ],
+            how="outer"
+        ).drop_duplicates(subset="Client Uid")
+
+        # create the output dataframe
+        output = pd.DataFrame.from_dict(
+            {
+                "Q1": [
+                    len(CreatePOCList(merge).return_poc_list()),
+                    len(merge.index)
+                ],
+                "Q2": [
+                    len(CreatePOCList(merge_2).return_poc_list()),
+                    len(merge_2.index)
+                ],
+                "Q3": [
+                    len(CreatePOCList(merge_3).return_poc_list()),
+                    len(merge_3.index)
+                ],
+                "Q4": [
+                    len(CreatePOCList(merge_4).return_poc_list()),
+                    len(merge_4.index)
+                ]
+            }
+        )
+
+        # add the % row
+        output.loc[3] = (100*(output.loc[0]/output.loc[1])).round(2)
+
+        # add the metric and goals columns
+        output["Metric"] = "41% of participants served will be people of color"
+        output["Goal"] = "41%"
+
+        # return the final dataframe
+        return output
 
 
     def percent_exits_by_destination(self, entries_df, provider_type, dept):
@@ -1409,14 +1514,26 @@ class AllFunctions:
             # as a person of color and were placed into permanent housing
             perm_poc = data[
                 data["Client Uid"].isin(poc) &
-                data["Department Placed From(3076)"].str.contains("ACCE") &
+                (
+                    (
+                        data["Department Placed From(3076)"].str.contains("ACCE") &
+                        ~(placements_df["Reporting Program (TPI)(8748)"] == "Ticket Home - Served")
+                    ) |
+                    data["Department Placed From(3076)"].str.contains("Residen")
+                ) &
                 data["Intervention Type (TPI)(8745)"].str.contains("Permanent")
             ]
 
             # create a sub-datatable containing only participants who idenfity
             # as a person of color and were placed into permanent housing
             perm_all = data[
-                data["Department Placed From(3076)"].str.contains("ACCE") &
+                (
+                    (
+                        data["Department Placed From(3076)"].str.contains("ACCE") &
+                        ~(placements_df["Reporting Program (TPI)(8748)"] == "Ticket Home - Served")
+                    ) |
+                    data["Department Placed From(3076)"].str.contains("Residen")
+                ) &
                 data["Intervention Type (TPI)(8745)"].str.contains("Permanent")
             ]
 
@@ -1700,11 +1817,13 @@ class AllFunctions:
         # add quarter and fiscal year columns to a local copy of the data frame
         # then also add the columns identifying if a participant was enrolled
         # during a given quarter
+        # to break out by provider replace .isin() statement with .str.contains()
+        # statement and run per provider
         data = return_quarters(
             QuarterAndFiscalYear(
                 entries_df[
                     entries_df["Entry Exit Provider Id"].isin(self.departments[dept])
-                ].drop_duplicates(subset=["Client Uid", "Entry Exit Entry Date"]),
+                ],
                 "specify",
                 quarter_end,
                 fill_na=True
@@ -1712,10 +1831,10 @@ class AllFunctions:
         )
 
         # create a poc version of the DataFrame
-        poc_data = data[data["Client Uid"].isin(poc)][["Q1", "Q2", "Q3", "Q4"]]
+        poc_data = data[data["Client Uid"].isin(poc)].drop_duplicates(subset=["Client Uid"])[["Q1", "Q2", "Q3", "Q4"]]
 
         # create a dataframe that will show sums of unique participants per quarters
-        cleaned = data[["Q1", "Q2", "Q3", "Q4"]]
+        cleaned = data[["Client Uid", "Q1", "Q2", "Q3", "Q4"]].drop_duplicates(subset=["Client Uid"]).drop_duplicates(subset=["Client Uid", "Q1", "Q2", "Q3", "Q4"])
         q_data = pd.DataFrame.from_dict(
             {
                 "Q1": [cleaned["Q1"].sum()],
@@ -1759,7 +1878,7 @@ class AllFunctions:
         """
         metric: 41% of participants served will be people of color
 
-        used by: agency, resource center, outreach/CHAT,
+        used by: resource center, outreach/CHAT,
         health
 
         :param services_df: a pandas dataframe created from the all services
@@ -1771,17 +1890,10 @@ class AllFunctions:
 
         :return: a pivot table
         """
-        if dept == "agency":
-            # add quarter and fiscal year columns to a local copy of the data frame
-            data = QuarterAndFiscalYear(
-                services_df.drop_duplicates(subset="Client Uid"),
-                fill_na=False
-            ).create_fy_q_columns()
-        else:
-            # add quarter and fiscal year columns to a local copy of the data frame
-            data = QuarterAndFiscalYear(services_df[
-                services_df["Service Provide Provider"].isin(self.departments[dept])
-            ].drop_duplicates(subset="Client Uid"), fill_na=False).create_fy_q_columns()
+        # add quarter and fiscal year columns to a local copy of the data frame
+        data = QuarterAndFiscalYear(services_df[
+            services_df["Service Provide Provider"].isin(self.departments[dept])
+        ].drop_duplicates(subset="Client Uid"), fill_na=False).create_fy_q_columns()
 
         # create a list of all poc
         poc = CreatePOCList(services_df).return_poc_list()
@@ -1903,6 +2015,7 @@ class AllFunctions:
         merged_dfs = services.merge(
             entries[[
                 "Client Uid",
+                "Entry Exit Provider Id",
                 "Entry Exit Entry Date",
                 "Entry Exit Entry Date Fiscal Year",
                 "Entry Exit Entry Date Quarter",
@@ -1931,6 +2044,8 @@ class AllFunctions:
 
         # create a pivot table based on quarter showing unique participants with
         # a service during said quarter
+        # to break out by provider simply change the index to be Entry Exit
+        # Provider Id
         served = pd.pivot_table(
             cleaned.drop_duplicates(subset=[
                 "Client Uid",
@@ -1946,11 +2061,13 @@ class AllFunctions:
         served["FYTD"] = len(
             cleaned.drop_duplicates(subset="Client Uid").index
         )
+        # uncomment the next row to create the numerators of the per dept numbers
+        # return served
 
         # use the np.select method to add Q1, Q2, Q3, Q4 columns for tracking if
         # an entry is active during a given quarter
         q_check = return_quarters(
-            entries.drop_duplicates(subset=["Client Uid", "Entry Exit Entry Date"])
+            entries.drop_duplicates(subset=["Client Uid", "Entry Exit Entry Date Quarter"])
         )
 
         # create a pivot table for all participants with an open entry during a
@@ -2011,6 +2128,8 @@ class AllFunctions:
         spdat = spdat_df[["Client Uid"]]
 
         # add quarter and fiscal year columns to a local copy of the entries_df
+        # to break this report out by shelters simply replace the .isin statement
+        # with a .str.contains(dept) statement and run per department
         entries = QuarterAndFiscalYear(
             entries_df[
                 entries_df["Entry Exit Provider Id"].isin(self.departments[dept])
@@ -2065,3 +2184,8 @@ class AllFunctions:
 
         # return the data concatendated data frame
         return concatenated
+
+
+if __name__ == "__main__":
+    a = AllFunctions()
+    print(a.percent_placed_into_perm_poc(pd.read_excel(askopenfilename(title="placements")), pd.read_excel(askopenfilename(title="SERVICES")), "housing"))
