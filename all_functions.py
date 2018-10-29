@@ -789,6 +789,208 @@ class AllFunctions:
         return output
 
 
+    def percent_day_hf_ss(self, services_df, quarter_starts):
+        """
+        metric: 50% of participants will connect to a housing-focused supportive
+        service
+
+        request: Create a report that allows us to count participants who have a
+        service in the resource center then, later, during the same fiscal year,
+        gets a service from another part of the agency that is not a shelter
+        provider.
+
+        used by: recource center
+
+        Methodology:
+        Pull in services as a pandas dataframe
+
+        Look for each participant's first service from the resource center in a
+        given fiscal year and make this into a dataframe
+
+        Make a dataframe from the services data that doesn't include any services
+        from the resource center or the shelters
+
+        Merge the new dataframe with the resource center df using a left merge
+        and the resouce center data as the right element on the client id
+
+        Drop rows where the non-resource center service is prior to the the
+        resource center service
+
+        Sort by date and drop duplicates keeping the oldest
+
+        Count by FYTD and return a % of total pt served during FYTD
+
+        :param services_df: a pandas dataframe created from the All Services.xlsx
+        ART report
+
+        :param quarter_starts:a list of datetime.datetime objects containing
+        only year, month, and day.  No smaller units should be present.
+        """
+        # define a dictionary for holding output values
+        output_dict = {
+            "Metric": [
+                "50% of participants will connect to a housing-focused supportive service",
+                "50% of participants will connect to a housing-focused supportive service",
+                "50% of participants will connect to a housing-focused supportive service"
+            ],
+            "Goal": ["50%", "50%", "50%"],
+            "Q1": [np.nan, np.nan, np.nan],
+            "Q2": [np.nan, np.nan, np.nan],
+            "Q3": [np.nan, np.nan, np.nan],
+            "Q4": [np.nan, np.nan, np.nan],
+            "FYTD": [np.nan, np.nan, np.nan]
+        }
+
+        # loop through the datestime values in the quarter_starts paramerter
+        # creating quarter columns
+        for date in quarter_starts:
+            # slice the services_df so that it only contains services from the
+            # resource center
+            rec_df = services_df[
+                services_df["Service Provide Provider"].isin(self.departments["rec"]) &
+                (services_df["Service Provide Start Date"] < date)
+            ].sort_values(
+                by=["Client Uid", "Service Provide Start Date"],
+                ascending=True
+            ).drop_duplicates(subset=["Client Uid"], keep="first")
+
+            # slice the services_df so that it only contains services from the
+            # support services and case management departments
+            other_df = services_df[
+                ~(services_df["Service Provide Provider"].isin(self.departments["res"])) &
+                ~(services_df["Service Provide Provider"].isin(self.departments["es"])) &
+                ~(services_df["Service Provide Provider"].isin(self.departments["rec"])) &
+                (services_df["Service Provide Start Date"] < date)
+            ]
+
+            # merge the two sliced data frames
+            merged_df = other_df.merge(
+                rec_df,
+                how="left",
+                on="Client Uid",
+                suffixes=("_other", "_day")
+            )
+
+            # slice the merged_df so that it only includes service provide start
+            # date_other is creater than the service provide start date_day value
+            # this df will then have its rows sorted by the service_provide start
+            # date_day column with values ascending.  Then the dataframe will be
+            # de-duplicated by client uid and the service provide start Date_day
+            # keeping the first unique value encourntered
+            connected_df = merged_df[
+                merged_df["Service Provide Start Date_other"] > merged_df["Service Provide Start Date_day"]
+            ].sort_values(
+                by=["Client Uid", "Service Provide Start Date_day"],
+                ascending=True
+            ).drop_duplicates(subset="Client Uid", keep="first")
+
+            if date.month == 10:
+                output_dict["Q1"] = [
+                    len(connected_df.index),
+                    len(rec_df.index),
+                    (100*(len(connected_df.index)/len(rec_df.index)))
+                ]
+            elif date.month == 1:
+                output_dict["Q2"] = [
+                    len(connected_df.index),
+                    len(rec_df.index),
+                    (100*(num_connected/num_rec))
+                ]
+            elif date.month == 4:
+                output_dict["Q3"] = [
+                    len(connected_df.index),
+                    len(rec_df.index),
+                    (100*(num_connected/num_rec))
+                ]
+            else:
+                output_dict["Q4"] = [
+                    len(connected_df.index),
+                    len(rec_df.index),
+                    (100*(num_connected/num_rec))
+                ]
+                output_dict["FYTD"] = [
+                    len(connected_df.index),
+                    len(rec_df.index),
+                    (100*(num_connected/num_rec))
+                ]
+
+        return pd.DataFrame.from_dict(output_dict).fillna(0)
+
+
+    def percent_entries_poc(self, entries_df, dept, quarter_end):
+        """
+        metric: 41% of participants served will be people of color
+
+        used by: Residential Shelters, Emergency shelters
+
+        :param entries_df: a pandas dataframe created from the all_entries + UDE
+        ART report
+
+        :return: a pandas dataframe
+        """
+        # create the poc list
+        poc = CreatePOCList(entries_df).return_poc_list()
+
+        # add quarter and fiscal year columns to a local copy of the data frame
+        # then also add the columns identifying if a participant was enrolled
+        # during a given quarter
+        # to break out by provider replace .isin() statement with .str.contains()
+        # statement and run per provider
+        data = return_quarters(
+            QuarterAndFiscalYear(
+                entries_df[
+                    entries_df["Entry Exit Provider Id"].isin(self.departments[dept])
+                ],
+                "specify",
+                quarter_end,
+                fill_na=True
+            ).create_fy_q_columns()
+        )
+
+        # create a poc version of the DataFrame
+        poc_data = data[data["Client Uid"].isin(poc)].drop_duplicates(subset=["Client Uid"])[["Q1", "Q2", "Q3", "Q4"]]
+
+        # create a dataframe that will show sums of unique participants per quarters
+        cleaned = data[["Client Uid", "Q1", "Q2", "Q3", "Q4"]].drop_duplicates(subset=["Client Uid"]).drop_duplicates(subset=["Client Uid", "Q1", "Q2", "Q3", "Q4"])
+        q_data = pd.DataFrame.from_dict(
+            {
+                "Q1": [cleaned["Q1"].sum()],
+                "Q2": [cleaned["Q2"].sum()],
+                "Q3": [cleaned["Q3"].sum()],
+                "Q4": [cleaned["Q4"].sum()]
+            }
+        )
+
+        # add a FYTD column
+        q_data["FYTD"] = len(cleaned.index)
+
+        # create poc quarter data
+        poc_q_data = pd.DataFrame.from_dict(
+            {
+                "Q1": [poc_data["Q1"].sum()],
+                "Q2": [poc_data["Q2"].sum()],
+                "Q3": [poc_data["Q3"].sum()],
+                "Q4": [poc_data["Q4"].sum()]
+            }
+        )
+
+        # add a FYTD column to the poc_q_data
+        poc_q_data["FYTD"] = len(poc_data.index)
+
+        # create a percent dataframe
+        percent = (100*(poc_q_data / q_data)).round(2)
+
+        # add metric and goals columns
+        percent["Metric"] = "41% of participants served will be people of color"
+        percent["Goal"] = "41%"
+
+        # concatenate the three dataframes
+        concatenated = pd.concat([poc_q_data, q_data, percent], ignore_index=True)
+
+        # return the concatenated dataframe
+        return concatenated
+
+
     def percent_exits_by_destination(self, entries_df, provider_type, dept):
         """
         Note: pos in the context of this method indicates positive
@@ -1741,7 +1943,7 @@ class AllFunctions:
                 (fu["Months Post Subsidy"] > 10) &
                 (fu["Months Post Subsidy"] < 14) &
                 (fu["Is Client Still in Housing?(2519)"] == "Yes (HUD)")
-            ],
+            ].sort_values(by="Months Post Subsidy", ascending=False).drop_duplicates(subset=["Client Uid", "Actual Follow Up Date(2518) Fiscal Year", "Actual Follow Up Date(2518) Quarter"]),
             index="Actual Follow Up Date(2518) Fiscal Year",
             columns="Actual Follow Up Date(2518) Quarter",
             values="Client Uid",
@@ -1752,9 +1954,9 @@ class AllFunctions:
         pos_pivot["FYTD"] = len(
             fu[
                 (fu["Months Post Subsidy"] > 10) &
-                (fu["Months Post Subsidy"] < 13) &
+                (fu["Months Post Subsidy"] < 14) &
                 (fu["Is Client Still in Housing?(2519)"] == "Yes (HUD)")
-            ].drop_duplicates(subset="Client Uid").index
+            ].sort_values(by="Months Post Subsidy", ascending=False).drop_duplicates(subset="Client Uid").index
         )
 
 
@@ -1764,7 +1966,7 @@ class AllFunctions:
             fu[
                 (fu["Months Post Subsidy"] > 10) &
                 (fu["Months Post Subsidy"] < 13)
-            ],
+            ].sort_values(by="Months Post Subsidy", ascending=False).drop_duplicates(subset=["Client Uid", "Actual Follow Up Date(2518) Fiscal Year", "Actual Follow Up Date(2518) Quarter"]),
             index="Actual Follow Up Date(2518) Fiscal Year",
             columns="Actual Follow Up Date(2518) Quarter",
             values="Client Uid",
@@ -1776,7 +1978,7 @@ class AllFunctions:
             fu[
                 (fu["Months Post Subsidy"] > 10) &
                 (fu["Months Post Subsidy"] < 13)
-            ].drop_duplicates(subset="Client Uid").index
+            ].sort_values(by="Months Post Subsidy", ascending=False).drop_duplicates(subset="Client Uid").index
         )
 
         # Add a % row dividing the previous colomns and multiplying the result
@@ -1798,80 +2000,6 @@ class AllFunctions:
 
         # return the results
         return final_pivot
-
-
-    def percent_entries_poc(self, entries_df, dept, quarter_end):
-        """
-        metric: 41% of participants served will be people of color
-
-        used by: Residential Shelters, Emergency shelters
-
-        :param entries_df: a pandas dataframe created from the all_entries + UDE
-        ART report
-
-        :return: a pandas dataframe
-        """
-        # create the poc list
-        poc = CreatePOCList(entries_df).return_poc_list()
-
-        # add quarter and fiscal year columns to a local copy of the data frame
-        # then also add the columns identifying if a participant was enrolled
-        # during a given quarter
-        # to break out by provider replace .isin() statement with .str.contains()
-        # statement and run per provider
-        data = return_quarters(
-            QuarterAndFiscalYear(
-                entries_df[
-                    entries_df["Entry Exit Provider Id"].isin(self.departments[dept])
-                ],
-                "specify",
-                quarter_end,
-                fill_na=True
-            ).create_fy_q_columns()
-        )
-
-        # create a poc version of the DataFrame
-        poc_data = data[data["Client Uid"].isin(poc)].drop_duplicates(subset=["Client Uid"])[["Q1", "Q2", "Q3", "Q4"]]
-
-        # create a dataframe that will show sums of unique participants per quarters
-        cleaned = data[["Client Uid", "Q1", "Q2", "Q3", "Q4"]].drop_duplicates(subset=["Client Uid"]).drop_duplicates(subset=["Client Uid", "Q1", "Q2", "Q3", "Q4"])
-        q_data = pd.DataFrame.from_dict(
-            {
-                "Q1": [cleaned["Q1"].sum()],
-                "Q2": [cleaned["Q2"].sum()],
-                "Q3": [cleaned["Q3"].sum()],
-                "Q4": [cleaned["Q4"].sum()]
-            }
-        )
-
-        # add a FYTD column
-        q_data["FYTD"] = len(cleaned.index)
-
-        # create poc quarter data
-        poc_q_data = pd.DataFrame.from_dict(
-            {
-                "Q1": [poc_data["Q1"].sum()],
-                "Q2": [poc_data["Q2"].sum()],
-                "Q3": [poc_data["Q3"].sum()],
-                "Q4": [poc_data["Q4"].sum()]
-            }
-        )
-
-        # add a FYTD column to the poc_q_data
-        poc_q_data["FYTD"] = len(poc_data.index)
-
-        # create a percent dataframe
-        percent = (100*(poc_q_data / q_data)).round(2)
-
-        # add metric and goals columns
-        percent["Metric"] = "41% of participants served will be people of color"
-        percent["Goal"] = "41%"
-
-        # concatenate the three dataframes
-        concatenated = pd.concat([poc_q_data, q_data, percent], ignore_index=True)
-
-        # return the concatenated dataframe
-        return concatenated
 
 
     def percent_served_poc(self, services_df, dept):
@@ -2188,4 +2316,4 @@ class AllFunctions:
 
 if __name__ == "__main__":
     a = AllFunctions()
-    print(a.percent_placed_into_perm_poc(pd.read_excel(askopenfilename(title="placements")), pd.read_excel(askopenfilename(title="SERVICES")), "housing"))
+    print(a.percent_day_hf_ss(pd.read_excel(askopenfilename(title="services")),[datetime(year=2018, month=10, day=1)]))
