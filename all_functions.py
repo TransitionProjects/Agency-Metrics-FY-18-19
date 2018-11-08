@@ -1965,7 +1965,7 @@ class AllFunctions:
         all_pivot = pd.pivot_table(
             fu[
                 (fu["Months Post Subsidy"] > 10) &
-                (fu["Months Post Subsidy"] < 13)
+                (fu["Months Post Subsidy"] < 14)
             ].sort_values(by="Months Post Subsidy", ascending=False).drop_duplicates(subset=["Client Uid", "Actual Follow Up Date(2518) Fiscal Year", "Actual Follow Up Date(2518) Quarter"]),
             index="Actual Follow Up Date(2518) Fiscal Year",
             columns="Actual Follow Up Date(2518) Quarter",
@@ -1977,7 +1977,7 @@ class AllFunctions:
         all_pivot["FYTD"] = len(
             fu[
                 (fu["Months Post Subsidy"] > 10) &
-                (fu["Months Post Subsidy"] < 13)
+                (fu["Months Post Subsidy"] < 14)
             ].sort_values(by="Months Post Subsidy", ascending=False).drop_duplicates(subset="Client Uid").index
         )
 
@@ -2312,8 +2312,3 @@ class AllFunctions:
 
         # return the data concatendated data frame
         return concatenated
-
-
-if __name__ == "__main__":
-    a = AllFunctions()
-    print(a.percent_day_hf_ss(pd.read_excel(askopenfilename(title="services")),[datetime(year=2018, month=10, day=1)]))
