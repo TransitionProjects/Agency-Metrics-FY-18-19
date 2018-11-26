@@ -173,17 +173,21 @@ class AllFunctions:
             # add quarter counter columns
             q_data = return_quarters(
                 data.drop_duplicates(
-                    subset=["Client Uid"]
+                    subset=["Client Uid", "Entry Exit Entry Date"]
                 )
             )
+            q1 = q_data.drop_duplicates(subset=["Client Uid", "Q1"])
+            q2 = q_data.drop_duplicates(subset=["Client Uid", "Q2"])
+            q3 = q_data.drop_duplicates(subset=["Client Uid", "Q3"])
+            q4 = q_data.drop_duplicates(subset=["Client Uid", "Q4"])
 
             # create a pivot table based on quarters
             pivot = pd.DataFrame.from_dict(
                 {
-                    "Q1": [q_data["Q1"].sum()],
-                    "Q2": [q_data["Q2"].sum()],
-                    "Q3": [q_data["Q3"].sum()],
-                    "Q4": [q_data["Q4"].sum()]
+                    "Q1": [q1["Q1"].sum()],
+                    "Q2": [q2["Q2"].sum()],
+                    "Q3": [q3["Q3"].sum()],
+                    "Q4": [q4["Q4"].sum()]
                 }
             )
 
@@ -948,34 +952,47 @@ class AllFunctions:
         )
 
         # create a poc version of the DataFrame
-        poc_data = data[data["Client Uid"].isin(poc)].drop_duplicates(subset=["Client Uid"])[["Q1", "Q2", "Q3", "Q4"]]
+        poc_data = data[
+            data["Client Uid"].isin(poc)
+        ][["Client Uid", "Q1", "Q2", "Q3", "Q4"]]
+        pocq1 = poc_data.drop_duplicates(subset=["Client Uid", "Q1"])
+        pocq2 = poc_data.drop_duplicates(subset=["Client Uid", "Q2"])
+        pocq3 = poc_data.drop_duplicates(subset=["Client Uid", "Q3"])
+        pocq4 = poc_data.drop_duplicates(subset=["Client Uid", "Q4"])
 
         # create a dataframe that will show sums of unique participants per quarters
-        cleaned = data[["Client Uid", "Q1", "Q2", "Q3", "Q4"]].drop_duplicates(subset=["Client Uid"]).drop_duplicates(subset=["Client Uid", "Q1", "Q2", "Q3", "Q4"])
+        cleaned = data[
+            ["Client Uid", "Q1", "Q2", "Q3", "Q4"]
+        ]
+        q1 = cleaned.drop_duplicates(subset=["Client Uid", "Q1"])
+        q2 = cleaned.drop_duplicates(subset=["Client Uid", "Q2"])
+        q3 = cleaned.drop_duplicates(subset=["Client Uid", "Q3"])
+        q4 = cleaned.drop_duplicates(subset=["Client Uid", "Q4"])
+
         q_data = pd.DataFrame.from_dict(
             {
-                "Q1": [cleaned["Q1"].sum()],
-                "Q2": [cleaned["Q2"].sum()],
-                "Q3": [cleaned["Q3"].sum()],
-                "Q4": [cleaned["Q4"].sum()]
+                "Q1": [q1["Q1"].sum()],
+                "Q2": [q2["Q2"].sum()],
+                "Q3": [q3["Q3"].sum()],
+                "Q4": [q4["Q4"].sum()]
             }
         )
 
         # add a FYTD column
-        q_data["FYTD"] = len(cleaned.index)
+        q_data["FYTD"] = len(cleaned.drop_duplicates(subset="Client Uid").index)
 
         # create poc quarter data
         poc_q_data = pd.DataFrame.from_dict(
             {
-                "Q1": [poc_data["Q1"].sum()],
-                "Q2": [poc_data["Q2"].sum()],
-                "Q3": [poc_data["Q3"].sum()],
-                "Q4": [poc_data["Q4"].sum()]
+                "Q1": [pocq1["Q1"].sum()],
+                "Q2": [pocq2["Q2"].sum()],
+                "Q3": [pocq3["Q3"].sum()],
+                "Q4": [pocq4["Q4"].sum()]
             }
         )
 
         # add a FYTD column to the poc_q_data
-        poc_q_data["FYTD"] = len(poc_data.index)
+        poc_q_data["FYTD"] = len(poc_data.drop_duplicates(subset="Client Uid").index)
 
         # create a percent dataframe
         percent = (100*(poc_q_data / q_data)).round(2)
@@ -1917,14 +1934,22 @@ class AllFunctions:
 
         :return:
         """
+        # create a cleaned version of the follow up data frame so that nan
+        # fields and out of range dates do not cause the script to fail
+        c_fu = follow_ups_df[
+            follow_ups_df["End of Subsidy Date(2516)"].notna() &
+            follow_ups_df["Actual Follow Up Date(2518)"].notna() &
+            (follow_ups_df["End of Subsidy Date(2516)"] < follow_ups_df["Actual Follow Up Date(2518)"])
+        ][[
+            "Client Uid",
+            "End of Subsidy Date(2516)",
+            "Actual Follow Up Date(2518)",
+            "Is Client Still in Housing?(2519)"
+        ]]
 
         # Create a local copy of follow_ups_df
         fu = QuarterAndFiscalYear(
-            follow_ups_df[
-                follow_ups_df["End of Subsidy Date(2516)"].notna() &
-                follow_ups_df["Actual Follow Up Date(2518)"].notna() &
-                (follow_ups_df["End of Subsidy Date(2516)"] < follow_ups_df["Actual Follow Up Date(2518)"])
-            ],
+            c_fu,
             fill_na=False
         ).create_fy_q_columns()
 
@@ -2197,14 +2222,18 @@ class AllFunctions:
         q_check = return_quarters(
             entries.drop_duplicates(subset=["Client Uid", "Entry Exit Entry Date Quarter"])
         )
+        q1 = q_check.drop_duplicates(subset=["Client Uid", "Q1"])
+        q2 = q_check.drop_duplicates(subset=["Client Uid", "Q2"])
+        q3 = q_check.drop_duplicates(subset=["Client Uid", "Q3"])
+        q4 = q_check.drop_duplicates(subset=["Client Uid", "Q4"])
 
         # create a pivot table for all participants with an open entry during a
         # given quarter
         all_pivot_dict = {
-            "Q1": [q_check["Q1"].sum()],
-            "Q2": [q_check["Q2"].sum()],
-            "Q3": [q_check["Q3"].sum()],
-            "Q4": [q_check["Q4"].sum()]
+            "Q1": [q1["Q1"].sum()],
+            "Q2": [q2["Q2"].sum()],
+            "Q3": [q3["Q3"].sum()],
+            "Q4": [q4["Q4"].sum()]
         }
         all_pivot = pd.DataFrame.from_dict(all_pivot_dict)
 
@@ -2271,28 +2300,36 @@ class AllFunctions:
         # with an entry and a vi-spdat by quarter
         q_spdated = return_quarters(
             entries[entries["Client Uid"].isin(spdat["Client Uid"])]
-        ).drop_duplicates(subset="Client Uid")
+        ).drop_duplicates(subset=["Client Uid", "Entry Exit Entry Date"])
+        q1 = q_spdated.drop_duplicates(subset=["Client Uid", "Q1"])
+        q2 = q_spdated.drop_duplicates(subset=["Client Uid", "Q2"])
+        q3 = q_spdated.drop_duplicates(subset=["Client Uid", "Q3"])
+        q4 = q_spdated.drop_duplicates(subset=["Client Uid", "Q4"])
 
         # create a pivot table from the q_spdated dataframe
         all_spdated_dict = {
-            "Q1": [q_spdated["Q1"].sum()],
-            "Q2": [q_spdated["Q2"].sum()],
-            "Q3": [q_spdated["Q3"].sum()],
-            "Q4": [q_spdated["Q4"].sum()]
+            "Q1": [q1["Q1"].sum()],
+            "Q2": [q2["Q2"].sum()],
+            "Q3": [q3["Q3"].sum()],
+            "Q4": [q4["Q4"].sum()]
         }
         all_spdated = pd.DataFrame.from_dict(all_spdated_dict)
         all_spdated["FYTD"] = len(entries[entries["Client Uid"].isin(spdat)].drop_duplicates(subset="Client Uid").index)
 
         # use the return_quarters function to create a dataframe of all participants
         # with a provider entry
-        q_all = return_quarters(entries).drop_duplicates(subset="Client Uid")
+        q_all = return_quarters(entries).drop_duplicates(subset=["Client Uid", "Entry Exit Entry Date"])
+        q1 = q_all.drop_duplicates(subset=["Client Uid", "Q1"])
+        q2 = q_all.drop_duplicates(subset=["Client Uid", "Q2"])
+        q3 = q_all.drop_duplicates(subset=["Client Uid", "Q3"])
+        q4 = q_all.drop_duplicates(subset=["Client Uid", "Q4"])
 
         # create a pivot table from the q_all dataframe
         all_dict = {
-            "Q1": [q_all["Q1"].sum()],
-            "Q2": [q_all["Q2"].sum()],
-            "Q3": [q_all["Q3"].sum()],
-            "Q4": [q_all["Q4"].sum()]
+            "Q1": [q1["Q1"].sum()],
+            "Q2": [q2["Q2"].sum()],
+            "Q3": [q3["Q3"].sum()],
+            "Q4": [q4["Q4"].sum()]
         }
         all_pivot = pd.DataFrame.from_dict(all_dict)
         all_pivot["FYTD"] = len(entries.drop_duplicates(subset="Client Uid").index)

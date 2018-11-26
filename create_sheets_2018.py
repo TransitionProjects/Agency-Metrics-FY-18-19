@@ -55,7 +55,7 @@ class Agency(Department):
     def process(self):
         self.output = [
             af().count_placed_into_perm(self.original_placements, "agency"),
-            af().percent_agency_poc(self.original_entries, self.original_services),
+            af().percent_placed_into_perm_poc(self.original_placements, self.original_services, "agency"),
             af().percent_retaining_post_12_months(self.original_followups_a),
             af().percent_exits_by_destination(self.original_entries, "res", "agency"),
             af().percent_exits_by_destination(self.original_entries, "es", "agency")
@@ -235,7 +235,7 @@ class Emergency(Department):
     def process(self):
         self.output = [
             af().count_entered_into_provider(self.original_entries, "es", self.quarter_end, self.fiscal_year),
-            af().count_exclusions_by_provider(self.original_exclusions, "es"),
+            af().count_exclusions_by_provider(self.original_exclusions, "es", self.quarter_end),
             af().percent_entries_poc(self.original_entries, "es", self.quarter_end),
             af().percent_w_ss_service(self.original_entries, self.original_services, self.quarter_end, self.fiscal_year, "es"),
             af().percent_w_vi_spdat(self.original_entries, self.original_spdat, "es", self.quarter_end)
