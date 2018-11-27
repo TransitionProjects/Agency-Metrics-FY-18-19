@@ -308,17 +308,30 @@ class AllFunctions:
             data = QuarterAndFiscalYear(
                 placements_df[
                     (
-                        (placements_df["Department Placed From(3076)"] == "ACCESS") &
-                        ~(placements_df["Reporting Program (TPI)(8748)"] == "Ticket Home - Served")
-                    ) |
-                    (placements_df["Department Placed From(3076)"] == "Residential CM")
+                        (
+                            (placements_df["Department Placed From(3076)"] == "ACCESS") &
+                            ~(placements_df["Reporting Program (TPI)(8748)"] == "Ticket Home - Served")
+                        ) |
+                        (placements_df["Department Placed From(3076)"] == "Residential CM")
+                    ) &
+                    (
+                        ~(placements_df["Reporting Program (TPI)(8748)"].str.contains("Vets", na=False)) &
+                        ~(placements_df["Reporting Program (TPI)(8748)"].str.contains("SSVF", na=False)) &
+                        ~(placements_df["Reporting Program (TPI)(8748)"].str.contains("Veterans", na=False))
+                    )
+
                 ],
                 fill_na=False
             ).create_fy_q_columns().dropna(subset=["Intervention Type (TPI)(8745)"])
         elif dept.lower() == "vets":
             data = QuarterAndFiscalYear(
                 placements_df[
-                    (placements_df["Department Placed From(3076)"].str.contains("SSVF"))
+                    (
+                        placements_df["Department Placed From(3076)"].str.contains("SSVF") |
+                        placements_df["Reporting Program (TPI)(8748)"].str.contains("Veterans", na=False) |
+                        placements_df["Reporting Program (TPI)(8748)"].str.contains("Vets", na=False) |
+                        placements_df["Reporting Program (TPI)(8748)"].str.contains("SSVF", na=False)
+                    )
                 ],
                 fill_na=False
             ).create_fy_q_columns().dropna(subset=["Intervention Type (TPI)(8745)"])
