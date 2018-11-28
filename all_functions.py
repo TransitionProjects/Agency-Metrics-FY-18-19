@@ -45,6 +45,8 @@ class AllFunctions:
                 "Transition Projects (TPI) - Day Center - SP(26)"
             ],
             "vets": [
+                "Transition Projects (TPI) - SSVF - HP (VA)(6351)",
+                "Transition Projects (TPI) - SSVF - RRH (VA)(6350)",
                 "Transition Projects (TPI) - SSVF_18-OR-399 – Rapid Re-Housing (VA)(6350)",
                 "Transition Projects (TPI) Rent - Housing for Veterans (PHB)(5138)",
                 "Transition Projects (TPI) - Oregon Vets (OHA) - PSH(5744)",
