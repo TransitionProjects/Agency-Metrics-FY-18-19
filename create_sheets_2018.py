@@ -145,19 +145,21 @@ class Resource(Department):
     def __init__(
         self,
         services_file,
-        entries_file
+        entries_file,
+        next_quarter_starts
     ):
         super(Resource, self).__init__(
             services_file,
             entries_file
         )
+        self.next_quarter_starts = next_quarter_starts
 
     def process(self):
         self.output = [
             af().count_served_by_provider(self.original_services, "rec"),
             af().count_served_with_hygiene_services(self.original_services, "rec"),
             af().percent_served_poc(self.original_services, "rec"),
-            # af().percent_w_hf_ss(self.original_services, "rec")
+            af().percent_day_hf_ss(self.original_services, self.next_quarter_starts)
         ]
 
         return pd.concat(self.output, ignore_index=True)
@@ -341,7 +343,7 @@ if __name__ == "__main__":
         entries_file,
         placements_file,
         follow_ups_r_file,
-        datetime(year=2018, month=9, day=30),
+        datetime(year=2018, month=12, day=31),
         "FY 18-19"
     ).process()
     housingcm = HousingCM(
@@ -357,7 +359,11 @@ if __name__ == "__main__":
     ).process()
     resource = Resource(
         services_file,
-        entries_file
+        entries_file,
+        [
+            datetime(year=2018, month=10, day=1),
+            datetime(year=2019, month=1, day=1)
+        ]
     ).process()
     perm = Permanent(
         services_file,
@@ -367,7 +373,7 @@ if __name__ == "__main__":
         services_file,
         entries_file,
         spdat_file,
-        datetime(year=2018, month=9, day=30),
+        datetime(year=2018, month=12, day=31),
         "FY 18-19"
     ).process()
     es = Emergency(
@@ -375,7 +381,7 @@ if __name__ == "__main__":
         entries_file,
         exclusions_file,
         spdat_file,
-        datetime(year=2018, month=9, day=30),
+        datetime(year=2018, month=12, day=31),
         "FY 18-19"
     ).process()
     rent = RentWell(
@@ -386,7 +392,7 @@ if __name__ == "__main__":
         services_file,
         entries_file,
         spdat_file,
-        datetime(year=2018, month=9, day=30),
+        datetime(year=2018, month=12, day=31),
         "FY 18-19"
     ).process()
     health = Health(
