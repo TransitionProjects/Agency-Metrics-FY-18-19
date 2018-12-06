@@ -914,7 +914,7 @@ class AllFunctions:
                 output_dict["Q2"] = [
                     len(connected_df.index),
                     len(rec_df.index),
-                    (100*(connected_df.index/len(rec_df.index)))
+                    (100*(len(connected_df.index)/len(rec_df.index)))
                 ]
             # elif date.month == 4:
             #     output_dict["Q3"] = [
