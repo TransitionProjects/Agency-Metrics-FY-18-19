@@ -87,7 +87,8 @@ class AllFunctions:
                 "z-Transition Projects (TPI) - Peace Emergency Shelter - SP(5239)",
                 "Transition Projects (TPI) - Columbia Shelter(6527)",
                 "Transition Projects (TPI) - Willamette Center(5764)",
-                "Transition Projects (TPI) - WyEast Emergency Shelter(6612)"
+                "Transition Projects (TPI) - WyEast Emergency Shelter(6612)",
+                "Transition Projects (TPI) - Walnut Park Shelter(6853)"
             ],
             "emerg": [],
             "ment": [],
@@ -808,7 +809,7 @@ class AllFunctions:
         return output
 
 
-    def percent_day_hf_ss(self, services_df, quarter_starts):
+    def percent_day_hf_ss(self, services_df, next_quarter_starts):
         """
         metric: 50% of participants will connect to a housing-focused supportive
         service
@@ -860,9 +861,9 @@ class AllFunctions:
             "FYTD": [np.nan, np.nan, np.nan]
         }
 
-        # loop through the datestime values in the quarter_starts paramerter
+        # loop through the datestime values in the next_quarter_starts param
         # creating quarter columns
-        for date in quarter_starts:
+        for date in next_quarter_starts:
             # slice the services_df so that it only contains services from the
             # resource center
             rec_df = services_df[
@@ -913,25 +914,28 @@ class AllFunctions:
                 output_dict["Q2"] = [
                     len(connected_df.index),
                     len(rec_df.index),
-                    (100*(num_connected/num_rec))
+                    (100*(connected_df.index/len(rec_df.index)))
                 ]
-            elif date.month == 4:
-                output_dict["Q3"] = [
-                    len(connected_df.index),
-                    len(rec_df.index),
-                    (100*(num_connected/num_rec))
-                ]
-            else:
-                output_dict["Q4"] = [
-                    len(connected_df.index),
-                    len(rec_df.index),
-                    (100*(num_connected/num_rec))
-                ]
-                output_dict["FYTD"] = [
-                    len(connected_df.index),
-                    len(rec_df.index),
-                    (100*(num_connected/num_rec))
-                ]
+            # elif date.month == 4:
+            #     output_dict["Q3"] = [
+            #         len(connected_df.index),
+            #         len(rec_df.index),
+            #         (100*(connected_df.index/len(rec_df.index)))
+            #     ]
+            # else:
+            #     output_dict["Q4"] = [
+            #         len(connected_df.index),
+            #         len(rec_df.index),
+            #         (100*(connected_df.index/len(rec_df.index)))
+            #     ]
+                # The FYTD column is being commented out since I don't think
+                # this code is currently functional.  I will come back and work
+                # on it when time permits.
+                # output_dict["FYTD"] = [
+                #     len(connected_df.index),
+                #     len(rec_df.index),
+                #     (100*(connected_df.index/nlen(rec_df.index)))
+                # ]
 
         return pd.DataFrame.from_dict(output_dict).fillna(0)
 
@@ -2109,10 +2113,6 @@ class AllFunctions:
 
         # return the concatenated data frame of pivot tables
         return concatenated
-
-
-    def percent_w_hf_ss(self, services_df, dept):
-        pass
 
 
     def percent_w_ss_service(self, entries_df, services_df, quarter_end, fiscal_year, dept):
