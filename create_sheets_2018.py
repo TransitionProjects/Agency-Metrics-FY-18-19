@@ -362,7 +362,9 @@ if __name__ == "__main__":
         entries_file,
         [
             datetime(year=2018, month=10, day=1),
-            datetime(year=2019, month=1, day=1)
+            datetime(year=2019, month=1, day=1)# ,
+            # datetime(year=2019, month=4, day=1),
+            # datetime(year=2019, month=7, day=1)
         ]
     ).process()
     perm = Permanent(

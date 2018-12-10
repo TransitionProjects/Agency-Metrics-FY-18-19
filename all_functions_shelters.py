@@ -85,7 +85,8 @@ class AllFunctions:
                 "z-Transition Projects (TPI) - Peace Emergency Shelter - SP(5239)",
                 "Transition Projects (TPI) - Columbia Shelter(6527)",
                 "Transition Projects (TPI) - Willamette Center(5764)",
-                "Transition Projects (TPI) - WyEast Emergency Shelter(6612)"
+                "Transition Projects (TPI) - WyEast Emergency Shelter(6612)",
+                "Transition Projects (TPI) - Walnut Park Shelter(6853)"
             ],
             "emerg": [],
             "ment": [],
@@ -588,15 +589,16 @@ if __name__ == "__main__":
         ("Columbia", "es"),
         ("SOS", "es"),
         ("Willamette", "es"),
-        ("WyEast", "es")
+        ("WyEast", "es"),
+        ("Walnut", "es")
     ]
     entries = pd.read_excel(askopenfilename(title="Entries"))
     services = pd.read_excel(askopenfilename(title="Services"))
     spdat = pd.read_excel(askopenfilename(title="SPDAT"))
     exclusions = pd.read_excel(askopenfilename(title="Exclusions"))
-    quarter_end = datetime(year=2018, month=9, day=30)
+    quarter_end = datetime(year=2018, month=12, day=31)
     fiscal_year = "FY 18-19"
-    next_quarter_end = datetime(year=2018, month=12, day=31)
+    next_quarter_end = datetime(year=2018, month=3, day=31)
     af = AllFunctions()
     writer = pd.ExcelWriter(asksaveasfilename(title="Save"), engine="xlsxwriter")
 
