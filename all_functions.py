@@ -333,7 +333,8 @@ class AllFunctions:
                         placements_df["Department Placed From(3076)"].str.contains("SSVF") |
                         placements_df["Reporting Program (TPI)(8748)"].str.contains("Veterans", na=False) |
                         placements_df["Reporting Program (TPI)(8748)"].str.contains("Vets", na=False) |
-                        placements_df["Reporting Program (TPI)(8748)"].str.contains("SSVF", na=False)
+                        placements_df["Reporting Program (TPI)(8748)"].str.contains("SSVF", na=False) |
+                        placements_df["Reporting Program (TPI)(8748)"].str.contains("GPD", na=False)
                     )
                 ],
                 fill_na=False
@@ -449,8 +450,10 @@ class AllFunctions:
             placements_df[
                 (placements_df["Intervention Type (TPI)(8745)"] == "Eviction Prevention") &
                 (
-                    (placements_df["Department Placed From(3076)"].str.contains("SSVF")) |
-                    (placements_df["Department Placed From(3076)"].str.contains("Vets"))
+                    placements_df["Department Placed From(3076)"].str.contains("SSVF") |
+                    placements_df["Reporting Program (TPI)(8748)"].str.contains("Vets", na=False) |
+                    placements_df["Reporting Program (TPI)(8748)"].str.contains("SSVF", na=False) |
+                    placements_df["Reporting Program (TPI)(8748)"].str.contains("Veterans", na=False)
                 )
             ],
             fill_na=False
@@ -1653,7 +1656,12 @@ class AllFunctions:
             # as a person of color and were placed into permanent housing
             perm_poc = data[
                 data["Client Uid"].isin(poc) &
-                data["Department Placed From(3076)"].str.contains("SSVF") &
+                (
+                    data["Department Placed From(3076)"].str.contains("SSVF") |
+                    placements_df["Reporting Program (TPI)(8748)"].str.contains("Vets", na=False) |
+                    placements_df["Reporting Program (TPI)(8748)"].str.contains("SSVF", na=False) |
+                    placements_df["Reporting Program (TPI)(8748)"].str.contains("Veterans", na=False)
+                ) &
                 data["Intervention Type (TPI)(8745)"].str.contains("Permanent")
             ]
 
@@ -1967,7 +1975,7 @@ class AllFunctions:
         metric: 70% of people housed will remain in hosing 12-months post
         subsidy
 
-        used by: Agency, Veterans
+        used by: Agency, Veterans, Retention
 
         :param follow_ups_df: a data frame created from the follow-ups.xls Art
         report
@@ -2031,7 +2039,13 @@ class AllFunctions:
             fu[
                 (fu["Months Post Subsidy"] > 10) &
                 (fu["Months Post Subsidy"] < 14)
-            ].sort_values(by="Months Post Subsidy", ascending=False).drop_duplicates(subset=["Client Uid", "Actual Follow Up Date(2518) Fiscal Year", "Actual Follow Up Date(2518) Quarter"]),
+            ].sort_values(by="Months Post Subsidy", ascending=False).drop_duplicates(
+                subset=[
+                    "Client Uid",
+                    "Actual Follow Up Date(2518) Fiscal Year",
+                    "Actual Follow Up Date(2518) Quarter"
+                ]
+            ),
             index="Actual Follow Up Date(2518) Fiscal Year",
             columns="Actual Follow Up Date(2518) Quarter",
             values="Client Uid",
