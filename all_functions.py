@@ -448,7 +448,10 @@ class AllFunctions:
         data = QuarterAndFiscalYear(
             placements_df[
                 (placements_df["Intervention Type (TPI)(8745)"] == "Eviction Prevention") &
-                (placements_df["Department Placed From(3076)"].str.contains("SSVF"))
+                (
+                    (placements_df["Department Placed From(3076)"].str.contains("SSVF")) |
+                    (placements_df["Department Placed From(3076)"].str.contains("Vets"))
+                )
             ],
             fill_na=False
         ).create_fy_q_columns()
@@ -550,7 +553,7 @@ class AllFunctions:
         return pivot
 
 
-    def count_document_ready(self, spdat_df):
+    def count_document_ready(self, spdat_df, fiscal_year):
         """
         metric: 60 individuals waiting for PSH get application-ready
 
@@ -568,7 +571,9 @@ class AllFunctions:
 
         # create a pivot table
         pivot = pd.pivot_table(
-            data.drop_duplicates(subset="Client Uid"),
+            data[
+                data["Date Document Ready - ALL Top Priority Documents are COMPLETE (Only Answer Once)(9572) Fiscal Year"] == fiscal_year
+            ].drop_duplicates(subset="Client Uid"),
             index="Date Document Ready - ALL Top Priority Documents are COMPLETE (Only Answer Once)(9572) Fiscal Year",
             columns="Date Document Ready - ALL Top Priority Documents are COMPLETE (Only Answer Once)(9572) Quarter",
             values="Client Uid",
@@ -675,7 +680,7 @@ class AllFunctions:
         return pivot
 
 
-    def count_spdated(self, spdat_df):
+    def count_spdated(self, spdat_df, fiscal_year):
         """
         metric: Complete 500 assesments for permanent supportive housing
 
@@ -695,7 +700,7 @@ class AllFunctions:
 
         # create a pivot table
         pivot = pd.pivot_table(
-            data,
+            data[data["Date Added (7144-date_added) Fiscal Year"] == "FY 18-19"],
             index="Date Added (7144-date_added) Fiscal Year",
             columns="Date Added (7144-date_added) Quarter",
             values="Client Uid",
@@ -1654,8 +1659,14 @@ class AllFunctions:
 
             # create a sub-datatable containing only participants who idenfity
             # as a person of color and were placed into permanent housing
+            # updated to count non-ssvf vets placements
             perm_all = data[
-                data["Department Placed From(3076)"].str.contains("SSVF") &
+                (
+                    data["Department Placed From(3076)"].str.contains("SSVF") |
+                    placements_df["Reporting Program (TPI)(8748)"].str.contains("Vets", na=False) |
+                    placements_df["Reporting Program (TPI)(8748)"].str.contains("SSVF", na=False) |
+                    placements_df["Reporting Program (TPI)(8748)"].str.contains("Veterans", na=False)
+                ) &
                 data["Intervention Type (TPI)(8745)"].str.contains("Permanent")
             ]
 
@@ -1759,6 +1770,11 @@ class AllFunctions:
                     ) |
                     data["Department Placed From(3076)"].str.contains("Residen")
                 ) &
+                (
+                    ~(placements_df["Reporting Program (TPI)(8748)"].str.contains("Vets", na=False)) &
+                    ~(placements_df["Reporting Program (TPI)(8748)"].str.contains("SSVF", na=False)) &
+                    ~(placements_df["Reporting Program (TPI)(8748)"].str.contains("Veterans", na=False))
+                ) &
                 data["Intervention Type (TPI)(8745)"].str.contains("Permanent")
             ]
 
@@ -1771,6 +1787,11 @@ class AllFunctions:
                         ~(placements_df["Reporting Program (TPI)(8748)"] == "Ticket Home - Served")
                     ) |
                     data["Department Placed From(3076)"].str.contains("Residen")
+                ) &
+                (
+                    ~(placements_df["Reporting Program (TPI)(8748)"].str.contains("Vets", na=False)) &
+                    ~(placements_df["Reporting Program (TPI)(8748)"].str.contains("SSVF", na=False)) &
+                    ~(placements_df["Reporting Program (TPI)(8748)"].str.contains("Veterans", na=False))
                 ) &
                 data["Intervention Type (TPI)(8745)"].str.contains("Permanent")
             ]
@@ -2109,7 +2130,7 @@ class AllFunctions:
         # add metrics and goals columns
         concatenated["Metric"] = "41% of participants served will be people of color"
         concatenated["Goal"] = "41%"
-        concatenated.index = ["PoC", "All", "% PoC"]
+        # concatenated.set_index({0:"PoC", 1:"All", 2:"% PoC"}, inplace=True)
 
         # return the concatenated data frame of pivot tables
         return concatenated
@@ -2329,7 +2350,11 @@ class AllFunctions:
             "Q4": [q4["Q4"].sum()]
         }
         all_spdated = pd.DataFrame.from_dict(all_spdated_dict)
-        all_spdated["FYTD"] = len(entries[entries["Client Uid"].isin(spdat)].drop_duplicates(subset="Client Uid").index)
+        all_spdated["FYTD"] = len(
+            entries[
+                entries["Client Uid"].isin(spdat["Client Uid"])
+            ].drop_duplicates(subset="Client Uid").index
+        )
 
         # use the return_quarters function to create a dataframe of all participants
         # with a provider entry

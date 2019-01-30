@@ -286,8 +286,8 @@ class Outreach(Department):
 
     def process(self):
         self.output = [
-            af().count_spdated(self.original_spdat),
-            af().count_document_ready(self.original_spdat),
+            af().count_spdated(self.original_spdat, self.fiscal_year),
+            af().count_document_ready(self.original_spdat, self.fiscal_year),
             af().count_entered_into_provider(self.original_entries, "TicketHome", self.quarter_end, self.fiscal_year),
             af().percent_served_poc(self.original_services, "out")
         ]
