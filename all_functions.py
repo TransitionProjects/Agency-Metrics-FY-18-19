@@ -1071,7 +1071,7 @@ class AllFunctions:
                     ],
                     fill_na=False
                 ).create_fy_q_columns()
-                print(leavers[["Entry Exit Exit Date Fiscal Year"]])
+                
                 # Create quarter and year pivot tables
                 q_pos_pivot = pd.pivot_table(
                     leavers[
@@ -1158,13 +1158,15 @@ class AllFunctions:
                 )
 
                 q_pivot = pd.pivot_table(
-                    leavers,
+                    leavers[leavers["Entry Exit Exit Date Fiscal Year"].str.contains("18-19")],
                     index="Entry Exit Exit Date Fiscal Year",
                     columns="Entry Exit Exit Date Quarter",
                     values="Client Uid",
                     aggfunc=len
                 )
-                q_pivot["FYTD"] = len(leavers.index)
+                q_pivot["FYTD"] = len(leavers[
+                    leavers["Entry Exit Exit Date Fiscal Year"].str.contains("18-19")
+                ].index)
 
                 # merge the q_pivot and y_pivot pivot tables
                 percent = (100*(q_pos_pivot / q_pivot)).round(2)
