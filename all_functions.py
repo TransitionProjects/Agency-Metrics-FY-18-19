@@ -924,26 +924,26 @@ class AllFunctions:
                     len(rec_df.index),
                     (100*(len(connected_df.index)/len(rec_df.index)))
                 ]
-            # elif date.month == 4:
-            #     output_dict["Q3"] = [
-            #         len(connected_df.index),
-            #         len(rec_df.index),
-            #         (100*(connected_df.index/len(rec_df.index)))
-            #     ]
-            # else:
-            #     output_dict["Q4"] = [
-            #         len(connected_df.index),
-            #         len(rec_df.index),
-            #         (100*(connected_df.index/len(rec_df.index)))
-            #     ]
-                # The FYTD column is being commented out since I don't think
-                # this code is currently functional.  I will come back and work
-                # on it when time permits.
-                # output_dict["FYTD"] = [
-                #     len(connected_df.index),
-                #     len(rec_df.index),
-                #     (100*(connected_df.index/nlen(rec_df.index)))
-                # ]
+            elif date.month == 4:
+                output_dict["Q3"] = [
+                     len(connected_df.index),
+                     len(rec_df.index),
+                     (100*(connected_df.index/len(rec_df.index)))
+                 ]
+            else:
+                output_dict["Q4"] = [
+                    len(connected_df.index),
+                    len(rec_df.index),
+                    (100*(connected_df.index/len(rec_df.index)))
+                ]
+            # The FYTD column is being commented out since I don't think
+            # this code is currently functional.  I will come back and work
+            # on it when time permits.
+            output_dict["FYTD"] = [
+                len(connected_df.index),
+                len(rec_df.index),
+                (100*(len(connected_df.index)/len(rec_df.index)))
+            ]
 
         return pd.DataFrame.from_dict(output_dict).fillna(0)
 
@@ -1035,7 +1035,7 @@ class AllFunctions:
         return concatenated
 
 
-    def percent_exits_by_destination(self, entries_df, provider_type, dept):
+    def percent_exits_by_destination(self, entries_df, provider_type, dept, fy):
         """
         Note: pos in the context of this method indicates positive
         metric: X% of people exiting our X selters will exit to
@@ -1044,9 +1044,13 @@ class AllFunctions:
         used by: Agency, Housing CM, Permanent Housing (use dept of ca bm and a
         provider type of perm)
 
-        :param entries_df:
+        :param entries_df: a data frame made from the all entries report
 
-        :param provider_type:
+        :param provider_type: either es or res
+
+        :param dept: a short department name or the word agency
+
+        :param fy: a fiscal year value matching the FY XX-XX format
 
         :param dept: The department this metric relates to.  The must be a
         string included in the following list agency, housing
@@ -1067,12 +1071,15 @@ class AllFunctions:
                     ],
                     fill_na=False
                 ).create_fy_q_columns()
-
+                print(leavers[["Entry Exit Exit Date Fiscal Year"]])
                 # Create quarter and year pivot tables
                 q_pos_pivot = pd.pivot_table(
                     leavers[
-                        leavers["Entry Exit Destination"].isin(self.perm_dest) |
-                        leavers["Entry Exit Destination"].isin(self.temp_dest)
+                        (
+                            leavers["Entry Exit Destination"].isin(self.perm_dest) |
+                            leavers["Entry Exit Destination"].isin(self.temp_dest)
+                        ) &
+                        leavers["Entry Exit Exit Date Fiscal Year"].str.contains("18-19")
                     ],
                     index="Entry Exit Exit Date Fiscal Year",
                     columns="Entry Exit Exit Date Quarter",
@@ -1081,8 +1088,11 @@ class AllFunctions:
                 )
                 q_pos_pivot["FYTD"] = len(
                     leavers[
-                        leavers["Entry Exit Destination"].isin(self.perm_dest) |
-                        leavers["Entry Exit Destination"].isin(self.temp_dest)
+                        (
+                            leavers["Entry Exit Destination"].isin(self.perm_dest) |
+                            leavers["Entry Exit Destination"].isin(self.temp_dest)
+                        ) &
+                        leavers["Entry Exit Exit Date Fiscal Year"].str.contains("18-19")
                     ].index
                 )
 
@@ -1126,8 +1136,11 @@ class AllFunctions:
                 # Create quarter and year pivot tables
                 q_pos_pivot = pd.pivot_table(
                     leavers[
-                        leavers["Entry Exit Destination"].isin(self.perm_dest) |
-                        leavers["Entry Exit Destination"].isin(self.temp_dest)
+                        (
+                            leavers["Entry Exit Destination"].isin(self.perm_dest) |
+                            leavers["Entry Exit Destination"].isin(self.temp_dest)
+                        ) &
+                        leavers["Entry Exit Exit Date Fiscal Year"].str.contains("18-19")
                     ],
                     index="Entry Exit Exit Date Fiscal Year",
                     columns="Entry Exit Exit Date Quarter",
@@ -1136,8 +1149,11 @@ class AllFunctions:
                 )
                 q_pos_pivot["FYTD"] = len(
                     leavers[
-                        leavers["Entry Exit Destination"].isin(self.perm_dest) |
-                        leavers["Entry Exit Destination"].isin(self.temp_dest)
+                        (
+                            leavers["Entry Exit Destination"].isin(self.perm_dest) |
+                            leavers["Entry Exit Destination"].isin(self.temp_dest)
+                        ) &
+                        leavers["Entry Exit Exit Date Fiscal Year"].str.contains("18-19")
                     ].index
                 )
 
@@ -1176,8 +1192,10 @@ class AllFunctions:
                     fill_na=False
                 ).create_fy_q_columns()
                 conds = [
-                    leavers["Entry Exit Destination"].isin(self.perm_dest),
-                    leavers["Entry Exit Destination"].isin(self.temp_dest)
+                    (
+                        leavers["Entry Exit Destination"].isin(self.perm_dest),
+                        leavers["Entry Exit Destination"].isin(self.temp_dest)
+                    )
                 ]
                 choices = ["Yes", "Yes"]
                 leavers["Perm Stable"] = np.select(conds, choices, default="No")
@@ -1185,7 +1203,8 @@ class AllFunctions:
                 # Create quarter and year pivot tables
                 q_pos_pivot = pd.pivot_table(
                     leavers[
-                        (leavers["Perm Stable"] == "Yes")
+                        (leavers["Perm Stable"] == "Yes") &
+                        leavers["Entry Exit Exit Date Fiscal Year"].str.contains("18-19")
                     ].drop_duplicates(
                         subset=[
                             "Client Uid",
@@ -1200,7 +1219,8 @@ class AllFunctions:
                 )
                 q_pos_pivot["FYTD"] = len(
                     leavers[
-                        leavers["Perm Stable"] == "Yes"
+                        (leavers["Perm Stable"] == "Yes") &
+                        leavers["Entry Exit Exit Date Fiscal Year"].str.contains("18-19")
                     ].drop_duplicates(
                         subset=[
                             "Client Uid",
@@ -1211,7 +1231,8 @@ class AllFunctions:
 
                 q_pivot = pd.pivot_table(
                     leavers[
-                         leavers["Entry Exit Exit Date"].notna()
+                         leavers["Entry Exit Exit Date"].notna() &
+                         leavers["Entry Exit Exit Date Fiscal Year"].str.contains("18-19")
                     ].drop_duplicates(
                         subset=[
                             "Client Uid",
@@ -1226,7 +1247,8 @@ class AllFunctions:
                 )
                 q_pivot["FYTD"] = len(
                     leavers[
-                        leavers["Entry Exit Exit Date"].notna()
+                        leavers["Entry Exit Exit Date"].notna() &
+                        leavers["Entry Exit Exit Date Fiscal Year"].str.contains("18-19")
                     ].drop_duplicates(
                         subset=[
                             "Client Uid",
@@ -1282,7 +1304,8 @@ class AllFunctions:
                 # quarter
                 q_perm = pd.pivot_table(
                     leavers[
-                        leavers["Entry Exit Destination"].isin(self.perm_dest)
+                        leavers["Entry Exit Destination"].isin(self.perm_dest) &
+                        leavers["Entry Exit Exit Date Fiscal Year"].str.contains("18-19")
                     ],
                     columns="Entry Exit Exit Date Quarter",
                     values="Client Uid",
@@ -1290,12 +1313,14 @@ class AllFunctions:
                 )
                 q_perm["FYTD"] = len(
                     leavers[
-                        leavers["Entry Exit Destination"].isin(self.perm_dest)
+                        leavers["Entry Exit Destination"].isin(self.perm_dest) &
+                        leavers["Entry Exit Exit Date Fiscal Year"].str.contains("18-19")
                     ].index)
 
                 q_stable = pd.pivot_table(
                     leavers[
-                        leavers["Entry Exit Destination"].isin(self.temp_dest)
+                        leavers["Entry Exit Destination"].isin(self.temp_dest) &
+                        leavers["Entry Exit Exit Date Fiscal Year"].str.contains("18-19")
                     ],
                     columns="Entry Exit Exit Date Quarter",
                     values="Client Uid",
@@ -1303,7 +1328,8 @@ class AllFunctions:
                 )
                 q_stable["FYTD"] = len(
                     leavers[
-                        leavers["Entry Exit Destination"].isin(self.temp_dest)
+                        leavers["Entry Exit Destination"].isin(self.temp_dest) &
+                        leavers["Entry Exit Exit Date Fiscal Year"].str.contains("18-19")
                     ].index)
 
                 q_any = pd.pivot_table(
@@ -1373,7 +1399,8 @@ class AllFunctions:
                 # quarter
                 q_perm = pd.pivot_table(
                     leavers[
-                        leavers["Exit Destination"] == "Perm"
+                        (leavers["Exit Destination"] == "Perm") &
+                        leavers["Entry Exit Exit Date Fiscal Year"].str.contains("18-19")
                     ],
                     columns="Entry Exit Exit Date Quarter",
                     values="Client Uid",
@@ -1381,13 +1408,15 @@ class AllFunctions:
                 )
                 q_perm["FYTD"] = len(
                     leavers[
-                        leavers["Exit Destination"] == "Perm"
+                        (leavers["Exit Destination"] == "Perm") &
+                        leavers["Entry Exit Exit Date Fiscal Year"].str.contains("18-19")
                     ].index
                 )
 
                 q_stable = pd.pivot_table(
                     leavers[
-                        leavers["Exit Destination"] == "Stable"
+                        (leavers["Exit Destination"] == "Stable") &
+                        leavers["Entry Exit Exit Date Fiscal Year"].str.contains("18-19")
                     ],
                     columns="Entry Exit Exit Date Quarter",
                     values="Client Uid",
@@ -1395,18 +1424,19 @@ class AllFunctions:
                 )
                 q_stable["FYTD"] = len(
                     leavers[
-                        leavers["Exit Destination"] == "Stable"
+                        (leavers["Exit Destination"] == "Stable") &
+                        leavers["Entry Exit Exit Date Fiscal Year"].str.contains("18-19")
                     ].drop_duplicates(subset="Client Uid").index
                 )
 
                 q_any = pd.pivot_table(
-                    leavers,
+                    leavers[leavers["Entry Exit Exit Date Fiscal Year"].str.contains("18-19")],
                     columns="Entry Exit Exit Date Quarter",
                     values="Client Uid",
                     aggfunc=len
                 )
                 q_any["FYTD"] = len(
-                    leavers.index
+                    leavers[leavers["Entry Exit Exit Date Fiscal Year"].str.contains("18-19")].index
                 )
 
                 # add a % to destination rows
@@ -1467,7 +1497,8 @@ class AllFunctions:
                 # quarter
                 q_perm = pd.pivot_table(
                     leavers[
-                        leavers["Exit Destination"] == "Perm"
+                        (leavers["Exit Destination"] == "Perm") &
+                        leavers["Entry Exit Exit Date Fiscal Year"].str.contains("18-19")
                     ].drop_duplicates(subset=["Client Uid", "Entry Exit Exit Date Quarter"]),
                     columns="Entry Exit Exit Date Quarter",
                     values="Client Uid",
@@ -1475,7 +1506,8 @@ class AllFunctions:
                 )
                 q_perm["FYTD"] = len(
                     leavers[
-                        leavers["Exit Destination"] == "Perm"
+                        (leavers["Exit Destination"] == "Perm") &
+                        leavers["Entry Exit Exit Date Fiscal Year"].str.contains("18-19")
                     ].drop_duplicates(subset="Client Uid").index
                 )
 
@@ -1486,7 +1518,7 @@ class AllFunctions:
                     aggfunc=len
                 )
                 q_any["FYTD"] = len(
-                    leavers.drop_duplicates(subset="Client Uid").index
+                    leavers[leavers["Entry Exit Exit Date Fiscal Year"].str.contains("18-19")].drop_duplicates(subset="Client Uid").index
                 )
 
                 # add a % to destination rows
@@ -2367,7 +2399,7 @@ class AllFunctions:
         all_spdated["FYTD"] = len(
             entries[
                 entries["Client Uid"].isin(spdat["Client Uid"])
-            ].drop_duplicates(subset="Client Uid").index
+            ].drop_duplicates(subset=["Client Uid"]).index
         )
 
         # use the return_quarters function to create a dataframe of all participants
@@ -2386,7 +2418,9 @@ class AllFunctions:
             "Q4": [q4["Q4"].sum()]
         }
         all_pivot = pd.DataFrame.from_dict(all_dict)
-        all_pivot["FYTD"] = len(entries.drop_duplicates(subset="Client Uid").index)
+        all_pivot["FYTD"] = len(
+            entries.drop_duplicates(subset=["Client Uid"]).index
+        )
 
         # create a % dataframe by dividing the other two
         percent = ((100*(all_spdated / all_pivot)).round(2)).fillna(0.0)
