@@ -344,7 +344,7 @@ class AllFunctions:
 
         if (dept == "housing") | (dept == "agency"):
             # Create a pivot table for the quarters droping duplicate placements
-            # using client uid, fiscal year, and fiscal quarter
+            # using client uid, fiscal year, and Quarter
             q_perm_placements = pd.pivot_table(
                 data[
                     data[
@@ -393,7 +393,7 @@ class AllFunctions:
             )
         elif dept == "vets":
             # Create a pivot table for the quarters droping duplicate placements
-            # using client uid, fiscal year, and fiscal quarter
+            # using client uid, fiscal year, and Quarter
             merged = pd.pivot_table(
                 data[
                     data[
@@ -1718,7 +1718,7 @@ class AllFunctions:
                 perm_poc.drop_duplicates(subset=[
                     "Client Uid",
                     "Placement Date(3072) Fiscal Year",
-                    "Placement Date(3072) Fiscal Quarter"
+                    "Placement Date(3072) Quarter"
                 ]),
                 index=["Placement Date(3072) Fiscal Year"],
                 columns=["Placement Date(3072) Quarter"],
@@ -1745,7 +1745,7 @@ class AllFunctions:
                 perm_all.drop_duplicates(subset=[
                     "Client Uid",
                     "Placement Date(3072) Fiscal Year",
-                    "Placement Date(3072) Fiscal Quarter"
+                    "Placement Date(3072) Quarter"
                 ]),
                 index=["Placement Date(3072) Fiscal Year"],
                 columns=["Placement Date(3072) Quarter"],
@@ -1844,7 +1844,7 @@ class AllFunctions:
                 perm_poc.drop_duplicates(subset=[
                     "Client Uid",
                     "Placement Date(3072) Fiscal Year",
-                    "Placement Date(3072) Fiscal Quarter"
+                    "Placement Date(3072) Quarter"
                 ]),
                 index=["Placement Date(3072) Fiscal Year"],
                 columns=["Placement Date(3072) Quarter"],
@@ -1871,7 +1871,7 @@ class AllFunctions:
                 perm_all.drop_duplicates(subset=[
                     "Client Uid",
                     "Placement Date(3072) Fiscal Year",
-                    "Placement Date(3072) Fiscal Quarter"
+                    "Placement Date(3072) Quarter"
                 ]),
                 index=["Placement Date(3072) Fiscal Year"],
                 columns=["Placement Date(3072) Quarter"],
