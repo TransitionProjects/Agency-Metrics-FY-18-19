@@ -596,9 +596,9 @@ if __name__ == "__main__":
     services = pd.read_excel(askopenfilename(title="Services"))
     spdat = pd.read_excel(askopenfilename(title="SPDAT"))
     exclusions = pd.read_excel(askopenfilename(title="Exclusions"))
-    quarter_end = datetime(year=2018, month=12, day=31)
+    quarter_end = datetime(year=2019, month=3, day=31)
     fiscal_year = "FY 18-19"
-    next_quarter_end = datetime(year=2018, month=3, day=31)
+    next_quarter_end = datetime(year=2019, month=6, day=30)
     af = AllFunctions()
     writer = pd.ExcelWriter(asksaveasfilename(title="Save"), engine="xlsxwriter")
 

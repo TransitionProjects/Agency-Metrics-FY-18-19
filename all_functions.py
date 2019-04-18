@@ -1071,7 +1071,7 @@ class AllFunctions:
                     ],
                     fill_na=False
                 ).create_fy_q_columns()
-                
+
                 # Create quarter and year pivot tables
                 q_pos_pivot = pd.pivot_table(
                     leavers[
