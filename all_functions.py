@@ -1630,7 +1630,7 @@ class AllFunctions:
                 perm_all.drop_duplicates(subset=[
                     "Client Uid",
                     "Placement Date(3072) Fiscal Year",
-                    "Placement Date(3072) Fiscal Quarter"
+                    "Placement Date(3072) Quarter"
                 ]),
                 index=["Placement Date(3072) Fiscal Year"],
                 columns=["Placement Date(3072) Quarter"],
