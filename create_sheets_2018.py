@@ -490,7 +490,7 @@ if __name__ == "__main__":
         entries_file,
         placements_file,
         follow_ups_r_file,
-        datetime(year=2019, month=3, day=31),
+        datetime(year=2019, month=6, day=30),
         "FY 18-19"
     ).process()
     housingcm = HousingCM(
@@ -512,7 +512,7 @@ if __name__ == "__main__":
             datetime(year=2018, month=10, day=1),
             datetime(year=2019, month=1, day=1),
             datetime(year=2019, month=4, day=1)#,
-            # datetime(year=2019, month=7, day=1)
+            datetime(year=2019, month=7, day=1)
         ]
     ).process()
     perm = Permanent(
@@ -524,7 +524,7 @@ if __name__ == "__main__":
         services_file,
         entries_file,
         spdat_file,
-        datetime(year=2019, month=3, day=31),
+        datetime(year=2019, month=6, day=30),
         "FY 18-19"
     ).process()
     es = Emergency(
@@ -532,7 +532,7 @@ if __name__ == "__main__":
         entries_file,
         exclusions_file,
         spdat_file,
-        datetime(year=2019, month=3, day=31),
+        datetime(year=2019, month=6, day=30),
         "FY 18-19"
     ).process()
     rent = RentWell(
@@ -543,7 +543,7 @@ if __name__ == "__main__":
         services_file,
         entries_file,
         spdat_file,
-        datetime(year=2019, month=3, day=31),
+        datetime(year=2019, month=6, day=30),
         "FY 18-19"
     ).process()
     health = Health(
@@ -552,7 +552,14 @@ if __name__ == "__main__":
     ).process()
 
     # establish writer object and save the output to a spreadsheet
-    writer = pd.ExcelWriter(asksaveasfilename(), engine="xlsxwriter")
+    writer = pd.ExcelWriter(
+        asksaveasfilename(
+            title="Save the Agency Metrics Raw report",
+            defaultextension=".xlsx",
+            intialfile="Agency Metrics {}.xlsx".format(datetime.date.today())
+        ),
+        engine="xlsxwriter"
+    )
     agency.to_excel(writer, sheet_name="Agency", index=False)
     housingcm.to_excel(writer, sheet_name="Housing CM", index=False)
     retention.to_excel(writer, sheet_name="Retention", index=False)
